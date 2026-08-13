@@ -24,6 +24,8 @@ Be precise and thorough. The prompt should work with Midjourney, DALL-E, Stable 
 const PRESETS = {
   openai: 'https://api.openai.com/v1/chat/completions',
   ollama: 'http://localhost:11434/v1/chat/completions',
+  lmstudio: 'http://localhost:1234/v1/chat/completions',
+  jan: 'http://localhost:1337/v1/chat/completions',
   openrouter: 'https://openrouter.ai/api/v1/chat/completions',
   custom: ''
 };
