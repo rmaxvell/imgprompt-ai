@@ -206,8 +206,9 @@ function resetToDefaults() {
   }
 }
 
-// Load settings on page open
+// Load settings on page open + attach all event listeners
 document.addEventListener('DOMContentLoaded', () => {
+  // Load saved settings
   chrome.storage.sync.get(DEFAULT_SETTINGS, (settings) => {
     document.getElementById('apiUrl').value = settings.apiUrl || '';
     document.getElementById('apiKey').value = settings.apiKey || '';
@@ -215,4 +216,34 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('systemPrompt').value = settings.systemPrompt || DEFAULT_SETTINGS.systemPrompt;
     setLang(settings.language || 'ru');
   });
+
+  // API preset buttons (data-preset attribute)
+  document.querySelectorAll('[data-preset]').forEach(btn => {
+    btn.addEventListener('click', () => setPreset(btn.dataset.preset));
+  });
+
+  // Show/hide API key
+  document.getElementById('toggleKeyBtn').addEventListener('click', toggleApiKeyVisibility);
+
+  // Load models list
+  document.getElementById('loadModelsBtn').addEventListener('click', loadModels);
+
+  // Test connection
+  document.getElementById('testBtn').addEventListener('click', testConnection);
+
+  // Language toggle buttons
+  document.querySelectorAll('.toggle-option[data-lang]').forEach(btn => {
+    btn.addEventListener('click', () => setLang(btn.dataset.lang));
+  });
+
+  // System prompt preset buttons (data-prompt attribute)
+  document.querySelectorAll('[data-prompt]').forEach(btn => {
+    btn.addEventListener('click', () => setSystemPromptPreset(btn.dataset.prompt));
+  });
+
+  // Reset to defaults
+  document.getElementById('resetBtn').addEventListener('click', resetToDefaults);
+
+  // Save settings
+  document.getElementById('saveBtn').addEventListener('click', saveSettings);
 });
