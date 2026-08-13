@@ -52,12 +52,15 @@
 
 ## 🤖 Рекомендуемые модели
 
-| Модель | Цензура | Цена |
-|---|---|---|
-| `nvidia/llama-3.1-nemotron-nano-vl-8b-v1:free` | 🟢 Низкая | FREE |
-| `qwen/qwen2.5-vl-72b-instruct:free` | 🟡 Средняя | FREE |
-| `meta-llama/llama-4-scout` | 🟢 Низкая | $ |
-| `qwen/qwen3-vl-32b-instruct` | 🟡 Средняя | $ |
+| Модель | Цензура | Цена | Статус |
+|---|---|---|---|
+| `google/gemma-4-31b-it` | 🟡 Средняя | FREE | ⭐ **По умолчанию** |
+| `qwen/qwen2.5-vl-72b-instruct:free` | 🟡 Средняя | FREE | ✅ Стабильная |
+| `meta-llama/llama-4-scout` | 🟢 Низкая | $ | ✅ Стабильная |
+| `qwen/qwen3-vl-32b-instruct` | 🟡 Средняя | $ | ✅ Стабильная |
+| `nvidia/llama-3.1-nemotron-nano-vl-8b-v1:free` | 🟢 Низкая | FREE | ⚠️ Нестабильная |
+
+> Модель по умолчанию можно сменить в любой момент — просто нажми на чип или введи ID вручную.
 
 ---
 
