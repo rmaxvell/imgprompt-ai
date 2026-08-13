@@ -11,7 +11,7 @@ import { getSystemPrompt, getUserMessage } from './prompts.js';
 const DEFAULTS = {
   apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
   apiKey: '',   // user enters their own key in popup
-  model:  'qwen/qwen2.5-vl-72b-instruct'
+  model:  'google/gemma-4-31b-it'
 };
 
 
