@@ -375,10 +375,10 @@
       <div class="form-group">
         <label>URL API <span class="required">*</span></label>
         <div class="presets">
-          <button class="preset-btn" onclick="setPreset('openai')">OpenAI</button>
-          <button class="preset-btn" onclick="setPreset('ollama')">Ollama (local)</button>
-          <button class="preset-btn" onclick="setPreset('openrouter')">OpenRouter</button>
-          <button class="preset-btn" onclick="setPreset('custom')">Мой роутер</button>
+          <button class="preset-btn" data-preset="openai">OpenAI</button>
+          <button class="preset-btn" data-preset="ollama">Ollama (local)</button>
+          <button class="preset-btn" data-preset="openrouter">OpenRouter</button>
+          <button class="preset-btn" data-preset="custom">Мой роутер</button>
         </div>
         <input type="url" id="apiUrl" placeholder="https://api.openai.com/v1/chat/completions" />
       </div>
@@ -387,7 +387,7 @@
         <label>API Ключ <span class="required">*</span></label>
         <div class="input-with-btn">
           <input type="password" id="apiKey" placeholder="sk-..." class="key-visible" />
-          <button class="btn btn-secondary" onclick="toggleApiKeyVisibility()" id="toggleKeyBtn">👁 Показать</button>
+          <button class="btn btn-secondary" id="toggleKeyBtn">👁 Показать</button>
         </div>
       </div>
 
@@ -395,11 +395,11 @@
         <label>Модель <span class="label-hint">(должна поддерживать изображения)</span></label>
         <div class="input-with-btn">
           <input type="text" id="model" placeholder="gpt-4o" />
-          <button class="btn btn-secondary" onclick="loadModels()" id="loadModelsBtn">📋 Загрузить</button>
+          <button class="btn btn-secondary" id="loadModelsBtn">📋 Загрузить</button>
         </div>
       </div>
 
-      <button class="btn btn-secondary" onclick="testConnection()" id="testBtn">
+      <button class="btn btn-secondary" id="testBtn">
         🧪 Проверить подключение
       </button>
       <div id="testResult" class="test-result"></div>
@@ -412,9 +412,9 @@
       <div class="form-group">
         <label>Язык ответа</label>
         <div class="toggle-group">
-          <button class="toggle-option" data-lang="ru" onclick="setLang('ru')">🇷🇺 Русский</button>
-          <button class="toggle-option" data-lang="en" onclick="setLang('en')">🇬🇧 English</button>
-          <button class="toggle-option" data-lang="both" onclick="setLang('both')">🌍 Оба</button>
+          <button class="toggle-option" data-lang="ru">🇷🇺 Русский</button>
+          <button class="toggle-option" data-lang="en">🇬🇧 English</button>
+          <button class="toggle-option" data-lang="both">🌍 Оба</button>
         </div>
       </div>
 
@@ -422,19 +422,19 @@
         <label>Системный промпт</label>
         <textarea id="systemPrompt"></textarea>
         <div style="margin-top: 8px; display: flex; gap: 8px;">
-          <button class="preset-btn" onclick="setSystemPromptPreset('detailed')">📝 Детальный</button>
-          <button class="preset-btn" onclick="setSystemPromptPreset('short')">⚡ Краткий</button>
-          <button class="preset-btn" onclick="setSystemPromptPreset('midjourney')">🎨 Midjourney</button>
-          <button class="preset-btn" onclick="setSystemPromptPreset('sd')">🖼 Stable Diffusion</button>
+          <button class="preset-btn" data-prompt="detailed">📝 Детальный</button>
+          <button class="preset-btn" data-prompt="short">⚡ Краткий</button>
+          <button class="preset-btn" data-prompt="midjourney">🎨 Midjourney</button>
+          <button class="preset-btn" data-prompt="sd">🖼 Stable Diffusion</button>
         </div>
       </div>
     </div>
 
     <!-- Actions -->
     <div class="actions">
-      <button class="btn btn-danger" onclick="resetToDefaults()">↺ Сброс</button>
+      <button class="btn btn-danger" id="resetBtn">↺ Сброс</button>
       <div class="spacer"></div>
-      <button class="btn btn-primary" onclick="saveSettings()" id="saveBtn">
+      <button class="btn btn-primary" id="saveBtn">
         💾 Сохранить настройки
       </button>
     </div>
