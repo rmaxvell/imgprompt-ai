@@ -1,9 +1,10 @@
 # 🔮 ImgPrompt AI
 
-**Chrome расширение для генерации промптов по картинке с помощью AI**
+**Расширение для браузера: генерация промптов по картинке с помощью AI**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue.svg)](https://developer.chrome.com/docs/extensions/)
+[![Firefox Extension](https://img.shields.io/badge/Firefox-Extension-orange.svg)](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions)
 
 ---
 
@@ -36,15 +37,24 @@
 |:---:|
 | ![История](screenshots/5-history-panel.png) |
 
-## 🚀 Установка
+## 🚀 Установка — Chrome / Edge / Brave
 
 > Chrome Web Store пока не поддерживается — устанавливается вручную за 30 секунд.
 
-1. Скачай ZIP → **[Releases](../../releases/latest)**
+1. Скачай ZIP → **[imgprompt-chrome-v1.1.zip](../../releases/latest)**
 2. Распакуй в любую папку
 3. Открой Chrome → `chrome://extensions/`
 4. Включи **Режим разработчика** (правый верхний угол)
 5. Нажми **Загрузить распакованное расширение** → выбери папку
+6. Готово! Иконка появится в панели браузера
+
+## 🦊 Установка — Firefox
+
+1. Скачай ZIP → **[imgprompt-firefox-v1.1.zip](../../releases)**
+2. Распакуй в любую папку
+3. Открой Firefox → `about:debugging#/runtime/this-firefox`
+4. Нажми **Загрузить временное дополнение...**
+5. Выбери файл `manifest.json` внутри распакованной папки
 6. Готово! Иконка появится в панели браузера
 
 ---
@@ -59,17 +69,18 @@
 | Opera / Opera GX | ✅ Полная |
 | Vivaldi | ✅ Полная |
 | Cent Browser | ✅ Полная |
-| Firefox | ❌ Не поддерживается |
-
-> Firefox использует другой API для боковых панелей — портирование потребует отдельной версии.
+| Firefox | ✅ Полная (отдельный ZIP) |
 
 ---
 
+## 🔑 Быстрый старт
 
 1. Нажми на иконку расширения
 2. Получи бесплатный ключ на [openrouter.ai](https://openrouter.ai) (есть полностью бесплатные модели)
 3. Вставь ключ в поле **API Key** → **Сохранить**
 4. Выбери модель из списка
+
+> 🦙 **Локальные модели** (Ollama / LM Studio / Jan): нажми кнопку провайдера — API ключ не нужен!
 
 ---
 
