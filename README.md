@@ -1,143 +1,173 @@
-# 🔮 ImgPrompt AI
+# ImgPrompt AI — Browser Extension for Image-to-Prompt Generation
 
-**Расширение для браузера: генерация промптов по картинке с помощью AI**
+**ImgPrompt AI** is a browser extension that analyzes any image or video frame on the web and generates a detailed text prompt suitable for AI image generators like Midjourney, Stable Diffusion, DALL-E, and Flux.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue.svg)](https://developer.chrome.com/docs/extensions/)
-[![Firefox Extension](https://img.shields.io/badge/Firefox-Extension-orange.svg)](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions)
+> Hover over any image → click one button → get a ready-to-use prompt.
 
 ---
 
-## ✨ Что умеет
+## Key Features
 
-- 📸 **Анализирует любую картинку** на странице одним кликом
-- ✨ **Генерирует промпт** + негатив + подробный разбор сцены
-- 🌊 **Форматы:** Stable Diffusion / FLUX / Midjourney / NovelAI
-- 🤖 **Vision-модели без цензуры:** Qwen2.5 VL 72B, NVIDIA Nemotron, Llama 4 и др.
-- 🕒 **История промптов** в боковой панели с возможностью удаления
-- 🌐 **OpenRouter** (300+ моделей) и **Groq** из коробки
-- 🦙 **Локальные модели:** Ollama, LM Studio, Jan — без API ключа
-- 📐 **Авто-сжатие** изображений + настройка качества JPEG
-- ⏱️ **Таймаут и отмена** запроса прямо из боковой панели
-- 🇷🇺 🇨🇳 🇬🇧 Три языка интерфейса
-
----
-
-## 📸 Скриншоты
-
-| Popup с локальными провайдерами | Выбор модели |
-|:---:|:---:|
-| ![Popup](screenshots/1-settings.png) | ![Настройки](screenshots/2-models.png) |
-
-| Контекстное меню | Результат анализа |
-|:---:|:---:|
-| ![Контекстное меню](screenshots/3-context-menu.png) | ![Промпт](screenshots/4-popup-result.png) |
-
-| Панель истории |
-|:---:|
-| ![История](screenshots/5-history-panel.png) |
-
-## 🚀 Установка — Chrome / Edge / Brave
-
-> Chrome Web Store пока не поддерживается — устанавливается вручную за 30 секунд.
-
-1. Скачай ZIP → **[imgprompt-chrome-v1.1.zip](../../releases/latest)**
-2. Распакуй в любую папку
-3. Открой Chrome → `chrome://extensions/`
-4. Включи **Режим разработчика** (правый верхний угол)
-5. Нажми **Загрузить распакованное расширение** → выбери папку
-6. Готово! Иконка появится в панели браузера
-
-## 🦊 Установка — Firefox
-
-1. Скачай ZIP → **[imgprompt-firefox-v1.1.zip](../../releases)**
-2. Распакуй в любую папку
-3. Открой Firefox → `about:debugging#/runtime/this-firefox`
-4. Нажми **Загрузить временное дополнение...**
-5. Выбери файл `manifest.json` внутри распакованной папки
-6. Готово! Иконка появится в панели браузера
-
----
-
-## 🌐 Совместимые браузеры
-
-| Браузер | Поддержка |
+| Feature | Description |
 |---|---|
-| Google Chrome | ✅ Полная |
-| Microsoft Edge | ✅ Полная |
-| Brave | ✅ Полная |
-| Opera / Opera GX | ✅ Полная |
-| Vivaldi | ✅ Полная |
-| Cent Browser | ✅ Полная |
-| Firefox | ✅ Полная (отдельный ZIP) |
+| One-click analysis | Hover over any image and click the overlay button to generate a prompt instantly |
+| Video frame capture | Analyze any frame from HTML5 video players (YouTube, Vimeo, etc.) |
+| Context menu | Right-click any image → "Analyze with ImgPrompt AI" |
+| Side panel history | All generated prompts are saved and searchable in the browser side panel |
+| Multiple providers | OpenRouter, Groq, Ollama, LM Studio, Jan — cloud or fully local |
+| Local AI support | Works with local vision models via OpenAI-compatible API (no internet required) |
+| Image compression | Automatic resizing before sending to save bandwidth and memory |
+| Request timeouts | Configurable timeouts with cancel button for slow local models |
+| Multilingual prompts | Generate prompts in English, Russian, or Chinese |
+| Custom system prompt | Override the default analysis instructions with your own |
+| Privacy-first | No backend server; API keys stored locally in encrypted browser storage |
 
 ---
 
-## 🔑 Быстрый старт
+## Screenshots
 
-1. Нажми на иконку расширения
-2. Получи бесплатный ключ на [openrouter.ai](https://openrouter.ai) (есть полностью бесплатные модели)
-3. Вставь ключ в поле **API Key** → **Сохранить**
-4. Выбери модель из списка
+| Overlay Button | Context Menu | Generated Prompt |
+|:---:|:---:|:---:|
+| ![Overlay](screenshots/1-overlay-button.png) | ![Context Menu](screenshots/3-context-menu.png) | ![Prompt](screenshots/4-popup-result.png) |
 
-> 🦙 **Локальные модели** (Ollama / LM Studio / Jan): нажми кнопку провайдера — API ключ не нужен!
-
----
-
-## 🎯 Как пользоваться
-
-1. Наведи мышь на любую картинку в браузере
-2. Нажми кнопку **🔮 Prompt** которая появится поверх картинки
-3. Готово — промпт появится во всплывающем окне и сохранится в истории
-4. Нажми **📋 Промпт** чтобы скопировать или **📄 Всё** для полного анализа
+| History Panel |
+|:---:|
+| ![History](screenshots/5-history-panel.png) |
 
 ---
 
-## 🤖 Рекомендуемые модели
+## Installation
 
-| Модель | Цензура | Цена | Статус |
+### Chrome / Edge / Brave / Opera / Vivaldi
+
+1. Download the latest ZIP from **[Releases](https://github.com/rmaxvell/imgprompt-ai/releases)**
+2. Unzip to any folder
+3. Open `chrome://extensions/` (or the equivalent in your browser)
+4. Enable **Developer mode** (top-right toggle)
+5. Click **Load unpacked** → select the unzipped folder
+6. Done! The icon will appear in your browser toolbar
+
+### Firefox
+
+1. Download the Firefox version from **[Releases](https://github.com/rmaxvell/imgprompt-ai/releases)**
+2. Open `about:debugging` → **This Firefox** → **Load Temporary Add-on**
+3. Select the `manifest.json` file
+4. Done!
+
+> Note: Temporary add-ons need to be reloaded on each Firefox restart. For persistent use, try Firefox Developer Edition.
+
+---
+
+## Supported Browsers
+
+| Browser | Support |
+|---|---|
+| Google Chrome | Full |
+| Microsoft Edge | Full |
+| Brave | Full |
+| Opera / Opera GX | Full |
+| Vivaldi | Full |
+| Firefox | Full (separate build) |
+
+---
+
+## Quick Start
+
+1. Click the extension icon in your toolbar
+2. Get a free API key at [openrouter.ai](https://openrouter.ai) (free models available)
+3. Paste the key into the **API Key** field → click **Save**
+4. Select a vision model from the list
+5. Hover over any image on any webpage → click the **Prompt** button
+
+---
+
+## Supported AI Providers
+
+### Cloud Providers
+
+| Provider | Setup |
+|---|---|
+| **OpenRouter** | Free account at [openrouter.ai](https://openrouter.ai), supports 100+ models including free ones |
+| **Groq** | Free account at [groq.com](https://groq.com), fast inference |
+
+### Local Providers (fully offline, no API key needed)
+
+| Provider | Default URL | Notes |
+|---|---|---|
+| **Ollama** | `http://localhost:11434/v1` | Free, open-source. Set `OLLAMA_ORIGINS=chrome-extension://*` for CORS |
+| **LM Studio** | `http://localhost:1234/v1` | GUI-based, easy model management |
+| **Jan** | `http://localhost:1337/v1` | Desktop app with built-in model library |
+
+> For local providers, you need a **vision-language model** (VLM) — a regular text model cannot analyze images.
+
+---
+
+## Recommended Models
+
+| Model | Censorship | Price | Notes |
 |---|---|---|---|
-| `google/gemma-4-31b-it` | 🟡 Средняя | FREE | ⭐ **По умолчанию** |
-| `qwen/qwen2.5-vl-72b-instruct:free` | 🟡 Средняя | FREE | ✅ Стабильная |
-| `meta-llama/llama-4-scout` | 🟢 Низкая | $ | ✅ Стабильная |
-| `qwen/qwen3-vl-32b-instruct` | 🟡 Средняя | $ | ✅ Стабильная |
-| `nvidia/llama-3.1-nemotron-nano-vl-8b-v1:free` | 🟢 Низкая | FREE | ⚠️ Нестабильная |
+| `google/gemma-4-31b-it` | Medium | FREE | Default model |
+| `qwen/qwen2.5-vl-72b-instruct:free` | Medium | FREE | Stable, high quality |
+| `meta-llama/llama-4-scout` | Low | Paid | Good for uncensored prompts |
+| `qwen/qwen3-vl-32b-instruct` | Medium | Paid | Stable |
+| `nvidia/llama-3.1-nemotron-nano-vl-8b-v1:free` | Low | FREE | Lightweight but unstable |
 
-> Модель по умолчанию можно сменить в любой момент — просто нажми на чип или введи ID вручную.
+### For Local Use (small VLMs)
+
+| Model | Size | RAM Required |
+|---|---|---|
+| `qwen2-vl-2b-instruct` | ~2 GB | 8 GB minimum |
+| `llava-v1.6-mistral-7b` | ~5 GB | 16 GB recommended |
+| `qwen2.5-vl-7b-instruct` | ~5 GB | 16 GB recommended |
 
 ---
 
-## 📦 Структура проекта
+## Configuration
+
+Open the **Options** page (right-click extension icon → Options) to configure:
+
+- **API Provider** — choose cloud or local
+- **Model** — select from auto-detected list or enter manually
+- **System Prompt** — customize the analysis instructions
+- **Image Compression** — max size (default: 1024px) and JPEG quality (default: 0.85)
+- **Request Timeout** — seconds to wait before aborting (0 = auto: 120s local, 60s cloud)
+- **Language** — prompt output language (EN/RU/ZH)
+
+---
+
+## Project Structure
 
 ```
 imgprompt-ai/
-├── manifest.json       # Конфигурация расширения
-├── popup.html/js       # Главный интерфейс
-├── sidepanel.html/js   # Боковая панель с историей
-├── background.js       # Service worker (API запросы)
-├── content.js          # Инъекция в страницы
-├── prompts.js          # Системные промпты (RU/EN/ZH)
-└── icons/              # Иконки расширения
+├── manifest.json       # Extension configuration (Manifest V3)
+├── popup.html/js       # Main popup interface
+├── options.html/js     # Settings page
+├── sidepanel.html/js   # Side panel with history
+├── background.js       # Service worker (API requests, image processing)
+├── content.js          # Content script (overlay, image detection, video capture)
+├── prompts.js          # System prompts (RU/EN/ZH)
+└── icons/              # Extension icons
 ```
 
 ---
 
-## 🔐 Безопасность API ключа
+## Privacy & Security
 
-**Вопрос:** куда сохраняется API ключ? Не утечёт ли он?
-
-**Ответ:** ключ хранится **только локально** в зашифрованном хранилище браузера (`chrome.storage.sync`). Расширение не имеет своего сервера — запросы идут **напрямую** с твоего компьютера на OpenRouter/Groq. Никто кроме тебя ключ не видит.
-
----
-
-## ☕ Поддержать автора
-
-Если расширение оказалось полезным:
-
-**[☕ Отправить на кофе через ЮMoney](https://yoomoney.ru/to/410013803949909)**
+- **No backend server** — all requests go directly from your browser to the chosen API provider
+- **API keys stored locally** — in the browser's encrypted `chrome.storage.sync`
+- **No telemetry** — no data is collected or sent anywhere except the API you configure
+- **Open source** — MIT license, inspect the code yourself
 
 ---
 
-## 📄 Лицензия
+## Support the Author
 
-MIT — используй, модифицируй, распространяй свободно.
+If you find this extension useful:
+
+**[Buy me a coffee via YooMoney](https://yoomoney.ru/to/410013803949909)**
+
+---
+
+## License
+
+MIT — use, modify, and distribute freely.
