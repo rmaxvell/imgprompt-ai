@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — ImgPrompt AI</title>
+  <meta name="description" content="Privacy Policy for ImgPrompt AI browser extension." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #07070f;
+      color: #e8e6f0;
+      line-height: 1.8;
+      padding: 40px 24px 80px;
+    }
+    .container { max-width: 720px; margin: 0 auto; }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 48px; text-decoration: none; color: #e8e6f0; }
+    .logo span { font-size: 1.5rem; }
+    .logo strong { font-size: 1.1rem; font-weight: 700; }
+    h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -.02em; }
+    .date { font-size: .875rem; color: #6b6a88; margin-bottom: 48px; }
+    h2 { font-size: 1.1rem; font-weight: 700; margin: 36px 0 12px; color: #a78bfa; }
+    p { color: #b8b6d0; margin-bottom: 12px; }
+    ul { color: #b8b6d0; padding-left: 20px; margin-bottom: 12px; }
+    li { margin-bottom: 6px; }
+    .highlight {
+      background: rgba(124,58,237,.1); border: 1px solid rgba(124,58,237,.2);
+      border-radius: 12px; padding: 20px 24px; margin: 24px 0;
+      color: #c4b5fd;
+    }
+    .highlight strong { color: #a78bfa; }
+    a { color: #a78bfa; }
+    footer { margin-top: 60px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,.08); font-size: .8rem; color: #6b6a88; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <a class="logo" href="index.html">
+    <span>🔮</span><strong>ImgPrompt AI</strong>
+  </a>
+
+  <h1>Privacy Policy</h1>
+  <p class="date">Last updated: August 14, 2025</p>
+
+  <div class="highlight">
+    <strong>Short version:</strong> ImgPrompt AI does not collect, store, or transmit any personal data to any server controlled by the developer. Your API key and settings stay only in your browser.
+  </div>
+
+  <h2>1. What data does the extension use?</h2>
+  <p>ImgPrompt AI processes the following data locally within your browser:</p>
+  <ul>
+    <li><strong>Images and video frames</strong> — content you explicitly choose to analyze by clicking the overlay button or context menu item</li>
+    <li><strong>API key</strong> — stored locally in <code>chrome.storage.sync</code>, never sent to any developer server</li>
+    <li><strong>Settings</strong> — selected AI provider, model, language, compression options — stored locally</li>
+    <li><strong>Prompt history</strong> — generated prompts stored locally in <code>chrome.storage.local</code></li>
+  </ul>
+
+  <h2>2. What data is sent externally?</h2>
+  <p>When you analyze an image, the image data is sent <strong>directly from your browser</strong> to the AI provider you have configured:</p>
+  <ul>
+    <li>OpenRouter (openrouter.ai)</li>
+    <li>Groq (api.groq.com)</li>
+    <li>Ollama, LM Studio, Jan — your local machine only (no internet)</li>
+  </ul>
+  <p>This transmission occurs under the privacy policies of the respective AI providers. The developer of ImgPrompt AI has no access to this data.</p>
+
+  <h2>3. Data we do NOT collect</h2>
+  <ul>
+    <li>We do not collect any personal information</li>
+    <li>We do not collect browsing history or visited URLs</li>
+    <li>We do not track user behavior or analytics</li>
+    <li>We do not use advertising identifiers</li>
+    <li>We do not sell or share any data with third parties</li>
+    <li>We have no backend server or database</li>
+  </ul>
+
+  <h2>4. Permissions explained</h2>
+  <ul>
+    <li><strong>activeTab</strong> — to detect images on the page you are viewing when you initiate analysis</li>
+    <li><strong>contextMenus</strong> — to add "Analyze with ImgPrompt AI" to the right-click menu on images</li>
+    <li><strong>scripting</strong> — to display the overlay button on images and capture video frames</li>
+    <li><strong>sidePanel</strong> — to show your prompt history in the browser side panel</li>
+    <li><strong>storage</strong> — to save settings and history locally in your browser</li>
+    <li><strong>tabs</strong> — to communicate between the popup and the active tab</li>
+    <li><strong>all_urls host access</strong> — to work on any website where you want to analyze images</li>
+  </ul>
+
+  <h2>5. Children's privacy</h2>
+  <p>ImgPrompt AI is not directed at children under 13. We do not knowingly collect any data from children.</p>
+
+  <h2>6. Changes to this policy</h2>
+  <p>If we make changes to this privacy policy, we will update the "Last updated" date above. Continued use of the extension after changes constitutes acceptance.</p>
+
+  <h2>7. Contact</h2>
+  <p>If you have any questions about this privacy policy, please open an issue on <a href="https://github.com/rmaxvell/imgprompt-ai" target="_blank">GitHub</a>.</p>
+
+  <footer>
+    🔮 ImgPrompt AI &nbsp;·&nbsp; <a href="index.html">Back to home</a> &nbsp;·&nbsp; MIT License
+  </footer>
+
+</div>
+</body>
+</html>
