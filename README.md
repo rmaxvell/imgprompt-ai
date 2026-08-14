@@ -1,10 +1,9 @@
 # 🔮 ImgPrompt AI
 
-**Chrome/Firefox расширение для генерации промптов по картинке с помощью AI**
+**Chrome расширение для генерации промптов по картинке с помощью AI**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Chrome Extension](https://img.shields.io/badge/Chrome-v1.1-blue.svg)](https://github.com/rmaxvell/imgprompt-ai/releases/tag/v1.1)
-[![Firefox Extension](https://img.shields.io/badge/Firefox-v1.1-orange.svg?logo=firefox)](https://github.com/rmaxvell/imgprompt-ai/releases/tag/v1.1-firefox)
+[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue.svg)](https://developer.chrome.com/docs/extensions/)
 
 ---
 
@@ -16,15 +15,18 @@
 - 🤖 **Vision-модели без цензуры:** Qwen2.5 VL 72B, NVIDIA Nemotron, Llama 4 и др.
 - 🕒 **История промптов** в боковой панели с возможностью удаления
 - 🌐 **OpenRouter** (300+ моделей) и **Groq** из коробки
+- 🦙 **Локальные модели:** Ollama, LM Studio, Jan — без API ключа
+- 📐 **Авто-сжатие** изображений + настройка качества JPEG
+- ⏱️ **Таймаут и отмена** запроса прямо из боковой панели
 - 🇷🇺 🇨🇳 🇬🇧 Три языка интерфейса
 
 ---
 
 ## 📸 Скриншоты
 
-| Главное меню | Выбор модели |
+| Popup с локальными провайдерами | Выбор модели |
 |:---:|:---:|
-| ![Главное меню](screenshots/2-models.png) | ![Настройки](screenshots/1-settings.png) |
+| ![Popup](screenshots/1-settings.png) | ![Настройки](screenshots/2-models.png) |
 
 | Контекстное меню | Результат анализа |
 |:---:|:---:|
@@ -34,30 +36,16 @@
 |:---:|
 | ![История](screenshots/5-history-panel.png) |
 
-## 🚀 Установка Chrome / Edge / Brave
+## 🚀 Установка
 
 > Chrome Web Store пока не поддерживается — устанавливается вручную за 30 секунд.
 
-1. Скачай ZIP → **[Releases → v1.1](https://github.com/rmaxvell/imgprompt-ai/releases/tag/v1.1)**
+1. Скачай ZIP → **[Releases](../../releases/latest)**
 2. Распакуй в любую папку
 3. Открой Chrome → `chrome://extensions/`
 4. Включи **Режим разработчика** (правый верхний угол)
 5. Нажми **Загрузить распакованное расширение** → выбери папку
 6. Готово! Иконка появится в панели браузера
-
----
-
-## 🦊 Установка Firefox
-
-> **[📦 Скачать Firefox версию (v1.1)](https://github.com/rmaxvell/imgprompt-ai/releases/tag/v1.1-firefox)**
-
-1. Скачай `imgprompt-firefox-v1.1.zip` и распакуй в любую папку
-2. Открой `about:debugging` → **Этот Firefox** → **Загрузить временное дополнение**
-3. Выбери файл `manifest.json`
-4. Готово!
-
-> ⚠️ Расширение нужно перезагружать при каждом запуске Firefox.
-> Для постоянной работы используй **Firefox Developer Edition**.
 
 ---
 
@@ -71,7 +59,9 @@
 | Opera / Opera GX | ✅ Полная |
 | Vivaldi | ✅ Полная |
 | Cent Browser | ✅ Полная |
-| Firefox | ✅ [Firefox Edition](https://github.com/rmaxvell/imgprompt-ai/releases/tag/v1.1-firefox) |
+| Firefox | ❌ Не поддерживается |
+
+> Firefox использует другой API для боковых панелей — портирование потребует отдельной версии.
 
 ---
 
