@@ -1,7 +1,10 @@
 const DEFAULT_SETTINGS = {
   apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
   apiKey: '',  // Enter your own API key
-  model: 'deepseek/deepseek-r1-0528',
+  model: 'qwen/qwen2.5-vl-72b-instruct',
+  imageMaxSize: 1024,
+  imageQuality: 0.85,
+  requestTimeout: 0,
   language: 'ru',
   systemPrompt: `You are an expert AI image analyst and prompt engineer. 
 Analyze the given image and provide:
@@ -93,9 +96,10 @@ async function testConnection() {
   const apiUrl = document.getElementById('apiUrl').value.trim();
   const apiKey = document.getElementById('apiKey').value.trim();
 
-  if (!apiUrl || !apiKey) {
+  const isLocal = /localhost|127\.0\.0\.1/i.test(apiUrl);
+  if (!apiUrl || (!apiKey && !isLocal)) {
     result.className = 'test-result error';
-    result.textContent = '❌ Введите URL и API ключ';
+    result.textContent = '❌ Введите URL и API ключ (или используйте локальный провайдер)';
     return;
   }
 
@@ -130,7 +134,8 @@ async function loadModels() {
   const apiUrl = document.getElementById('apiUrl').value.trim();
   const apiKey = document.getElementById('apiKey').value.trim();
 
-  if (!apiUrl || !apiKey) {
+  const isLocalLM = /localhost|127\.0\.0\.1/i.test(apiUrl);
+  if (!apiUrl || (!apiKey && !isLocalLM)) {
     showToast('Введите URL и API ключ', 'error');
     return;
   }
@@ -187,7 +192,10 @@ async function saveSettings() {
     apiKey: document.getElementById('apiKey').value.trim(),
     model: document.getElementById('model').value.trim(),
     language: currentLang,
-    systemPrompt: document.getElementById('systemPrompt').value.trim()
+    systemPrompt: document.getElementById('systemPrompt').value.trim(),
+    imageMaxSize: Math.max(64, Number(document.getElementById('imageMaxSize').value) || DEFAULT_SETTINGS.imageMaxSize),
+    imageQuality: Math.min(1, Math.max(0.1, Number(document.getElementById('imageQuality').value) || DEFAULT_SETTINGS.imageQuality)),
+    requestTimeout: Math.max(0, Number(document.getElementById('requestTimeout').value) || DEFAULT_SETTINGS.requestTimeout)
   };
 
   chrome.storage.sync.set(settings, () => {
@@ -203,6 +211,9 @@ function resetToDefaults() {
     document.getElementById('apiKey').value = '';
     document.getElementById('model').value = DEFAULT_SETTINGS.model;
     document.getElementById('systemPrompt').value = DEFAULT_SETTINGS.systemPrompt;
+    document.getElementById('imageMaxSize').value = DEFAULT_SETTINGS.imageMaxSize;
+    document.getElementById('imageQuality').value = DEFAULT_SETTINGS.imageQuality;
+    document.getElementById('requestTimeout').value = DEFAULT_SETTINGS.requestTimeout;
     setLang('ru');
     showToast('Настройки сброшены');
   }
@@ -216,6 +227,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('apiKey').value = settings.apiKey || '';
     document.getElementById('model').value = settings.model || '';
     document.getElementById('systemPrompt').value = settings.systemPrompt || DEFAULT_SETTINGS.systemPrompt;
+    document.getElementById('imageMaxSize').value = settings.imageMaxSize ?? DEFAULT_SETTINGS.imageMaxSize;
+    document.getElementById('imageQuality').value = settings.imageQuality ?? DEFAULT_SETTINGS.imageQuality;
+    document.getElementById('requestTimeout').value = settings.requestTimeout ?? DEFAULT_SETTINGS.requestTimeout;
     setLang(settings.language || 'ru');
   });
 
