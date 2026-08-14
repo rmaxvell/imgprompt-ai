@@ -117,7 +117,8 @@ async function captureViaUrlFetch(imageUrl) {
 async function runAnalysis(tabId, imageUrl, imageRect, lang) {
   const settings = await getSettings();
 
-  if (!settings.apiKey?.trim()) {
+  const isLocal = /localhost|127\.0\.0\.1/.test(settings.apiUrl || '');
+  if (!settings.apiKey?.trim() && !isLocal) {
     throw new Error('API ключ не настроен. Откройте popup расширения.');
   }
 
