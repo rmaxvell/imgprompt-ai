@@ -26,6 +26,40 @@ const PROFILES = {
       { id: 'llama-4-scout-17b-16e-instruct',     name: 'Llama 4 Scout 17B',    free: true, tag: 'NEW',  cls: 'llama' },
       { id: 'llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick 17B', free: true, tag: 'NEW',  cls: 'llama' },
     ]
+  },
+  ollama: {
+    name: 'Ollama',
+    icon: '🦙',
+    baseUrl: 'http://localhost:11434/v1',
+    defaultModel: 'llava',
+    requiresKey: false,
+    models: [
+      { id: 'llava',        name: 'LLaVA',        free: true, tag: 'LOCAL', cls: 'llama' },
+      { id: 'moondream',    name: 'Moondream',    free: true, tag: 'LOCAL', cls: 'llama' },
+      { id: 'llava-llama3', name: 'LLaVA Llama3', free: true, tag: 'LOCAL', cls: 'llama' },
+      { id: 'bakllava',     name: 'BakLLaVA',     free: true, tag: 'LOCAL', cls: 'llama' },
+    ]
+  },
+  lmstudio: {
+    name: 'LM Studio',
+    icon: '🖥',
+    baseUrl: 'http://localhost:1234/v1',
+    defaultModel: 'llava',
+    requiresKey: false,
+    models: [
+      { id: 'llava',      name: 'LLaVA',      free: true, tag: 'LOCAL', cls: 'llama' },
+      { id: 'moondream2', name: 'Moondream2', free: true, tag: 'LOCAL', cls: 'llama' },
+    ]
+  },
+  jan: {
+    name: 'Jan',
+    icon: '🤖',
+    baseUrl: 'http://localhost:1337/v1',
+    defaultModel: 'llava',
+    requiresKey: false,
+    models: [
+      { id: 'llava', name: 'LLaVA', free: true, tag: 'LOCAL', cls: 'llama' },
+    ]
   }
 };
 
@@ -52,6 +86,10 @@ function providerName(base = '') {
   if (base.includes('anthropic'))  return 'Anthropic';
   if (base.includes('groq'))       return 'Groq';
   if (base.includes('together'))   return 'Together';
+  if (base.includes('11434'))      return 'Ollama';
+  if (base.includes('1234'))       return 'LM Studio';
+  if (base.includes('1337'))       return 'Jan';
+  if (base.includes('localhost') || base.includes('127.0.0.1')) return 'Local';
   return base.replace(/^https?:\/\//, '').split('/')[0].split('.')[0] || 'API';
 }
 
@@ -159,7 +197,9 @@ function validateFields() {
   const key   = document.getElementById('apiKey')?.value.trim();
   const base  = document.getElementById('baseUrl')?.value.trim();
   const model = document.getElementById('modelInput')?.value.trim();
-  if (!key)   { showResult('⚠️ Введите API Key', false); return false; }
+  const prof  = PROFILES[activeProfileId];
+  // Local providers (Ollama, LM Studio, Jan) don't require an API key
+  if (!key && prof?.requiresKey !== false) { showResult('⚠️ Введите API Key', false); return false; }
   if (!base)  { showResult('⚠️ Введите Base URL', false); return false; }
   if (!model) { showResult('⚠️ Выберите модель', false); return false; }
   return true;
@@ -196,9 +236,11 @@ function populateChips(models) {
     chip.dataset.paid  = m.free ? 'false' : 'true';
 
     const label = m.name || m.id.replace(/^[^/]+\//, '');
-    const tagHtml = m.tag
-      ? `<span class="badge" style="background:rgba(16,185,129,0.2);border-color:rgba(16,185,129,0.4);color:#34d399">${m.tag}</span>`
-      : `<span class="badge ${m.free ? '' : 'paid'}">${m.free ? 'FREE' : '$'}</span>`;
+    const tagHtml = m.tag === 'LOCAL'
+      ? `<span class="badge" style="background:rgba(6,182,212,0.15);border-color:rgba(6,182,212,0.4);color:#67e8f9">LOCAL</span>`
+      : m.tag
+        ? `<span class="badge" style="background:rgba(16,185,129,0.2);border-color:rgba(16,185,129,0.4);color:#34d399">${m.tag}</span>`
+        : `<span class="badge ${m.free ? '' : 'paid'}">${m.free ? 'FREE' : '$'}</span>`;
 
     chip.innerHTML = `<span class="chip-label">${label}</span>${tagHtml}`;
     chip.addEventListener('click', () => selectChip(chip));
@@ -417,6 +459,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ── Button event listeners (CSP: no inline onclick allowed) ──
   document.getElementById('profileBtnOpenrouter')?.addEventListener('click', () => switchProfile('openrouter'));
   document.getElementById('profileBtnGroq')?.addEventListener('click',       () => switchProfile('groq'));
+  document.getElementById('profileBtnOllama')?.addEventListener('click',     () => switchProfile('ollama'));
+  document.getElementById('profileBtnLmstudio')?.addEventListener('click',   () => switchProfile('lmstudio'));
+  document.getElementById('profileBtnJan')?.addEventListener('click',        () => switchProfile('jan'));
   document.getElementById('saveBtn')?.addEventListener('click',     () => window.saveSettings());
   document.getElementById('resetBtn')?.addEventListener('click',    () => window.resetToDefaults());
   document.getElementById('testBtn')?.addEventListener('click',     () => window.testApi());
@@ -445,8 +490,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   syncChips(settings.model);
   updateHeader();
 
-  // Status indicator
-  if (settings.apiKey) {
+  // Status indicator — local providers don't need a key
+  const activeProf = PROFILES[settings.profileId] || PROFILES.openrouter;
+  if (settings.apiKey || activeProf.requiresKey === false) {
     document.getElementById('statusDot')?.classList.add('connected');
   }
 
