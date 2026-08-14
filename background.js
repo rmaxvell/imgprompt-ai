@@ -11,8 +11,90 @@ import { getSystemPrompt, getUserMessage } from './prompts.js';
 const DEFAULTS = {
   apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
   apiKey: '',   // user enters their own key in popup
-  model:  'google/gemma-4-31b-it'
+  model:  'google/gemma-4-31b-it',
+  imageMaxSize: 1024,
+  imageQuality: 0.85,
+  requestTimeout: 0 // 0 = provider-aware default: 120s local, 60s cloud
 };
+
+const MODELS_CACHE_TTL = 5 * 60 * 1000;
+const LOCAL_TIMEOUT_MS = 120 * 1000;
+const CLOUD_TIMEOUT_MS = 60 * 1000;
+let activeRequestController = null;
+
+function isLocalProvider(apiUrl = '') {
+  try {
+    const host = new URL(apiUrl).hostname.toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '0.0.0.0';
+  } catch (_) {
+    return /localhost|127\.0\.0\.1|\[::1\]/i.test(apiUrl);
+  }
+}
+
+function getRequestTimeoutMs(settings) {
+  const configured = Number(settings.requestTimeout);
+  if (Number.isFinite(configured) && configured > 0) return configured * 1000;
+  return isLocalProvider(settings.apiUrl) ? LOCAL_TIMEOUT_MS : CLOUD_TIMEOUT_MS;
+}
+
+function getRequestTimeoutSeconds(settings) {
+  return Math.round(getRequestTimeoutMs(settings) / 1000);
+}
+
+function getModelsCacheKey(apiUrl) {
+  const base = apiUrl.replace(/\/chat\/completions$/i, '').replace(/\/$/, '');
+  return `modelsCache:${base}`;
+}
+
+async function fetchModels(settings, forceRefresh = false) {
+  const base = settings.apiUrl.replace(/\/chat\/completions$/i, '').replace(/\/$/, '');
+  const cacheKey = getModelsCacheKey(settings.apiUrl);
+  const cached = await new Promise(resolve => chrome.storage.local.get({ [cacheKey]: null }, resolve));
+  if (!forceRefresh && cached[cacheKey] && Date.now() - cached[cacheKey].timestamp < MODELS_CACHE_TTL) {
+    return { data: cached[cacheKey].data || [], cached: true };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), getRequestTimeoutMs(settings));
+  try {
+    const response = await fetch(`${base}/models`, {
+      headers: { 'Authorization': `Bearer ${settings.apiKey || ''}` },
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const models = Array.isArray(data.data) ? data.data : [];
+    await new Promise(resolve => chrome.storage.local.set({ [cacheKey]: { timestamp: Date.now(), data: models } }, resolve));
+    return { data: models, cached: false };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function formatApiError(error, settings, status) {
+  const message = String(error?.message || error || 'Неизвестная ошибка');
+  const local = isLocalProvider(settings?.apiUrl);
+  if (error?.name === 'AbortError' || /aborted|timeout|timed out/i.test(message)) {
+    return `Модель не ответила за ${getRequestTimeoutSeconds(settings)} секунд. Попробуйте уменьшить размер изображения или использовать меньшую модель.`;
+  }
+  if (local && (error instanceof TypeError || /failed to fetch|networkerror|fetch failed|cors/i.test(message))) {
+    return /cors/i.test(message)
+      ? 'Ошибка CORS. Для Ollama настройте OLLAMA_ORIGINS.'
+      : 'Локальный сервер не запущен. Запустите Ollama/LM Studio/Jan.';
+  }
+  if (status === 404 || /model[^\n]*(not found|does not exist)|model_not_found/i.test(message)) {
+    return 'Модель не найдена. Проверьте model ID через /v1/models.';
+  }
+  return message;
+}
+
+function createRequestController(settings) {
+  if (activeRequestController) activeRequestController.abort();
+  activeRequestController = new AbortController();
+  const controller = activeRequestController;
+  const timer = setTimeout(() => controller.abort(), getRequestTimeoutMs(settings));
+  return { controller, cleanup: () => { clearTimeout(timer); if (activeRequestController === controller) activeRequestController = null; } };
+}
 
 
 // ── Settings ─────────────────────────────────────────────────────
@@ -28,6 +110,27 @@ async function getConfiguredSystemPrompt(lang) {
   return typeof systemPrompt === 'string' && systemPrompt.trim()
     ? systemPrompt
     : getSystemPrompt(lang);
+}
+
+async function compressImageData(imageData, settings) {
+  const maxSize = Math.max(64, Number(settings.imageMaxSize) || DEFAULTS.imageMaxSize);
+  const quality = Math.min(1, Math.max(0.1, Number(settings.imageQuality) || DEFAULTS.imageQuality));
+  const binary = atob(imageData.base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const bitmap = await createImageBitmap(new Blob([bytes], { type: imageData.mimeType || 'image/jpeg' }));
+  const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = new OffscreenCanvas(width, height);
+  const ctx = canvas.getContext('2d', { alpha: false });
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+  const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality });
+  const out = new Uint8Array(await blob.arrayBuffer());
+  let outBinary = '';
+  for (let i = 0; i < out.length; i += 32768) outBinary += String.fromCharCode(...out.subarray(i, i + 32768));
+  return { base64: btoa(outBinary), mimeType: 'image/jpeg', width, height };
 }
 
 // ── Strategy 1: Screenshot + crop (always works, no CORS) ────────
@@ -117,8 +220,8 @@ async function captureViaUrlFetch(imageUrl) {
 async function runAnalysis(tabId, imageUrl, imageRect, lang) {
   const settings = await getSettings();
 
-  const isLocal = /localhost|127\.0\.0\.1/.test(settings.apiUrl || '');
-  if (!settings.apiKey?.trim() && !isLocal) {
+  // ★ Local providers (Ollama, LM Studio, Jan) don't require an API key
+  if (!settings.apiKey?.trim() && !isLocalProvider(settings.apiUrl)) {
     throw new Error('API ключ не настроен. Откройте popup расширения.');
   }
 
@@ -139,7 +242,9 @@ async function runAnalysis(tabId, imageUrl, imageRect, lang) {
     }
   }
 
-  const { base64, mimeType } = imageData;
+  const compressedImage = await compressImageData(imageData, settings);
+  const { base64, mimeType } = compressedImage;
+  console.log('[ImgPrompt] Compressed image:', compressedImage.width, 'x', compressedImage.height, 'base64:', base64.length);
 
   // Call OpenRouter API
   const { apiUrl, apiKey, model } = settings;
@@ -147,7 +252,10 @@ async function runAnalysis(tabId, imageUrl, imageRect, lang) {
   const systemPrompt = await getConfiguredSystemPrompt(promptLang);
   console.log('[ImgPrompt] API:', apiUrl, '| model:', model, '| lang:', promptLang);
 
-  const resp = await fetch(apiUrl, {
+  const request = createRequestController(settings);
+  let resp;
+  try {
+    resp = await fetch(apiUrl, {
     method:  'POST',
     headers: {
       'Content-Type':  'application/json',
@@ -173,7 +281,12 @@ async function runAnalysis(tabId, imageUrl, imageRect, lang) {
       max_tokens:  2000,
       temperature: 0.4
     })
-  });
+    });
+  } catch (error) {
+    throw new Error(formatApiError(error, settings));
+  } finally {
+    request.cleanup();
+  }
 
   const text = await resp.text();
   console.log('[ImgPrompt] API status:', resp.status, '| preview:', text.slice(0, 200));
@@ -184,7 +297,7 @@ async function runAnalysis(tabId, imageUrl, imageRect, lang) {
       const errData = JSON.parse(text);
       errMsg = errData.error?.message || errData.message || errMsg;
     } catch (_) { errMsg += ': ' + text.slice(0, 200); }
-    throw new Error(errMsg);
+    throw new Error(formatApiError(new Error(errMsg), settings, resp.status));
   }
 
   const data    = JSON.parse(text);
@@ -315,7 +428,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     (async () => {
       try {
         const settings = await getSettings();
-        if (!settings.apiKey?.trim()) throw new Error('API ключ не настроен');
+        // ★ Local providers don't require an API key
+        if (!settings.apiKey?.trim() && !isLocalProvider(settings.apiUrl)) {
+          throw new Error('API ключ не настроен');
+        }
 
         const { apiUrl, apiKey, model } = settings;
         const promptLang   = msg.lang || 'en';
@@ -324,8 +440,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // Extract base64 from dataUrl (data:image/jpeg;base64,XXX)
         const [header, base64] = msg.dataUrl.split(',');
         const mimeType = header.split(':')[1].split(';')[0] || 'image/jpeg';
+        const compressed = await compressImageData({ base64, mimeType }, settings);
 
-        const resp = await fetch(apiUrl, {
+        const request = createRequestController(settings);
+        let resp;
+        try {
+          resp = await fetch(apiUrl, {
           method:  'POST',
           headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -334,19 +454,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
               { role: 'system', content: systemPrompt },
               { role: 'user',   content: [
                 { type: 'text',       text: getUserMessage(promptLang, 'video') },
-                { type: 'image_url',  image_url: { url: `data:${mimeType};base64,${base64}` } }
+                { type: 'image_url',  image_url: { url: `data:${compressed.mimeType};base64,${compressed.base64}` } }
               ]}
             ],
             max_tokens: 2000,
             temperature: 0.4
           })
-        });
+          });
+        } catch (error) {
+          throw new Error(formatApiError(error, settings));
+        } finally {
+          request.cleanup();
+        }
 
         const text = await resp.text();
         if (!resp.ok) {
           let errMsg = `HTTP ${resp.status}`;
           try { errMsg = JSON.parse(text).error?.message || errMsg; } catch(_) {}
-          throw new Error(errMsg);
+          throw new Error(formatApiError(new Error(errMsg), settings, resp.status));
         }
         const data    = JSON.parse(text);
         const content = data.choices?.[0]?.message?.content;
@@ -367,6 +492,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
+  // ── CANCEL_ANALYSIS ───────────────────────────────────────────
+  if (msg.type === 'CANCEL_ANALYSIS') {
+    if (activeRequestController) activeRequestController.abort();
+    sendResponse({ success: true });
+    return false;
+  }
+
   // ── GET_SETTINGS ──────────────────────────────────────────────
   if (msg.type === 'GET_SETTINGS') {
     getSettings().then(sendResponse);
@@ -377,44 +509,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'TEST_CONNECTION') {
     (async () => {
       try {
-        const s    = await getSettings();
-        const base = s.apiUrl.replace(/\/chat\/completions$/i, '');
-        const r    = await fetch(`${base}/models`, {
-          headers: { 'Authorization': `Bearer ${s.apiKey}` }
-        });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-
-        const d = await r.json();
-        const allModels = d.data || [];
-
-        // Filter for vision/image-capable models
+        const s = await getSettings();
+        const result = await fetchModels(s, Boolean(msg.forceRefresh));
+        const allModels = result.data;
         const visionModels = allModels
           .filter(m => {
             const arch = m.architecture || {};
-            // OpenRouter v1 schema: architecture.input_modalities = ["text","image"]
             const inputs = arch.input_modalities || arch.modality || [];
             const inputStr = Array.isArray(inputs) ? inputs.join(',') : String(inputs);
-            return inputStr.includes('image') || inputStr.includes('multimodal');
+            return inputStr.includes('image') || inputStr.includes('multimodal') || /vision|vl|image/i.test(m.id || '');
           })
-          .sort((a, b) => {
-            // Free models first
-            const aPrice = a.pricing?.prompt || '0';
-            const bPrice = b.pricing?.prompt || '0';
-            return parseFloat(aPrice) - parseFloat(bPrice);
-          })
-          .map(m => ({
-            id:   m.id,
-            name: m.name || m.id,
-            free: parseFloat(m.pricing?.prompt || '0') === 0
-          }));
-
-        sendResponse({
-          success:      true,
-          total:        allModels.length,
-          visionModels: visionModels.slice(0, 30) // cap at 30
-        });
-      } catch(e) {
-        sendResponse({ success: false, error: e.message });
+          .sort((a, b) => parseFloat(a.pricing?.prompt || '0') - parseFloat(b.pricing?.prompt || '0'))
+          .map(m => ({ id: m.id, name: m.name || m.id, free: parseFloat(m.pricing?.prompt || '0') === 0 }));
+        sendResponse({ success: true, total: allModels.length, visionModels: visionModels.slice(0, 30), cached: result.cached });
+      } catch (e) {
+        const s = await getSettings();
+        sendResponse({ success: false, error: formatApiError(e, s) });
       }
     })();
     return true;
