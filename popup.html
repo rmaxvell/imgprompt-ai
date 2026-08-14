@@ -218,6 +218,12 @@
       color: #67e8f9;
     }
 
+    .profile-btn.local.active {
+      background: rgba(6,182,212,0.12);
+      border-color: rgba(6,182,212,0.4);
+      color: #67e8f9;
+    }
+
     .key-status.ok  { color: #10b981; }
     .key-status.err { color: #ef4444; }
 
@@ -357,6 +363,11 @@
           <div class="profile-btn groq" data-profile="groq" id="profileBtnGroq">
             ⚡ Groq
           </div>
+        </div>
+        <div class="profile-row">
+          <div class="profile-btn local" data-profile="ollama" id="profileBtnOllama">🦙 Ollama</div>
+          <div class="profile-btn local" data-profile="lmstudio" id="profileBtnLmstudio">🖥 LM Studio</div>
+          <div class="profile-btn local" data-profile="jan" id="profileBtnJan">🤖 Jan</div>
         </div>
 
         <!-- Vision model selector -->
