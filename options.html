@@ -421,6 +421,21 @@
       </div>
 
       <div class="form-group">
+        <label>Максимальный размер изображения <span class="label-hint">(px по длинной стороне)</span></label>
+        <input type="number" id="imageMaxSize" min="64" max="8192" step="1" value="1024" />
+      </div>
+
+      <div class="form-group">
+        <label>Качество JPEG <span class="label-hint">(0.1–1.0)</span></label>
+        <input type="number" id="imageQuality" min="0.1" max="1" step="0.05" value="0.85" />
+      </div>
+
+      <div class="form-group">
+        <label>Таймаут запроса <span class="label-hint">(сек; 0 — авто: 120 local / 60 cloud)</span></label>
+        <input type="number" id="requestTimeout" min="0" max="900" step="1" value="0" />
+      </div>
+
+      <div class="form-group">
         <label>Системный промпт</label>
         <textarea id="systemPrompt"></textarea>
         <div style="margin-top: 8px; display: flex; gap: 8px;">
