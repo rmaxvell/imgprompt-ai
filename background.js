@@ -20,6 +20,16 @@ async function getSettings() {
   return new Promise(resolve => chrome.storage.sync.get(DEFAULTS, resolve));
 }
 
+async function getConfiguredSystemPrompt(lang) {
+  const { systemPrompt } = await new Promise(resolve =>
+    chrome.storage.sync.get({ systemPrompt: '' }, resolve)
+  );
+
+  return typeof systemPrompt === 'string' && systemPrompt.trim()
+    ? systemPrompt
+    : getSystemPrompt(lang);
+}
+
 // ── Strategy 1: Screenshot + crop (always works, no CORS) ────────
 async function captureViaScreenshot(tabId, rect) {
   console.log('[ImgPrompt] Using captureVisibleTab strategy, rect:', rect);
@@ -133,7 +143,7 @@ async function runAnalysis(tabId, imageUrl, imageRect, lang) {
   // Call OpenRouter API
   const { apiUrl, apiKey, model } = settings;
   const promptLang   = lang || 'en';                          // не переписываем параметр!
-  const systemPrompt = getSystemPrompt(promptLang);
+  const systemPrompt = await getConfiguredSystemPrompt(promptLang);
   console.log('[ImgPrompt] API:', apiUrl, '| model:', model, '| lang:', promptLang);
 
   const resp = await fetch(apiUrl, {
@@ -308,7 +318,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
         const { apiUrl, apiKey, model } = settings;
         const promptLang   = msg.lang || 'en';
-        const systemPrompt = getSystemPrompt(promptLang);
+        const systemPrompt = await getConfiguredSystemPrompt(promptLang);
 
         // Extract base64 from dataUrl (data:image/jpeg;base64,XXX)
         const [header, base64] = msg.dataUrl.split(',');
