@@ -160,7 +160,7 @@ function loadHistory(forceRefresh) {
 
     const bar = document.getElementById('analysisBar');
     const isLoading = pending && pending.status === 'loading' &&
-                      Date.now() - (pending.timestamp || 0) < 120000;
+                      Date.now() - (pending.timestamp || 0) < 15 * 60 * 1000;
     bar.classList.toggle('visible', !!isLoading);
 
     document.getElementById('countBadge').textContent = history.length;
@@ -202,6 +202,10 @@ function clearHistory() {
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('refreshBtn').addEventListener('click', () => loadHistory(true));
   document.getElementById('clearBtn').addEventListener('click', clearHistory);
+  document.getElementById('cancelAnalysisBtn')?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'CANCEL_ANALYSIS' });
+    chrome.storage.local.set({ pendingAnalysis: { status: 'error', error: 'Анализ отменён пользователем.', timestamp: Date.now() } });
+  });
 
   loadHistory(true);
 
