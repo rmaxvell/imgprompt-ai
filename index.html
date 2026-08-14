@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ImgPrompt AI — Turn Any Image Into a Perfect AI Prompt</title>
+  <meta name="description" content="Browser extension that analyzes any image or video frame and generates ready-to-use prompts for Midjourney, Stable Diffusion, FLUX and DALL-E. Supports Ollama, LM Studio, Jan — no API key needed for local models." />
+  <meta name="keywords" content="imgprompt, ai prompt generator, image to prompt, midjourney prompt, stable diffusion prompt, ollama, chrome extension, firefox extension" />
+  <meta property="og:title" content="ImgPrompt AI — Image to Prompt Generator" />
+  <meta property="og:description" content="One click. Any image. Perfect AI prompt. Works with OpenRouter, Groq, Ollama, LM Studio and Jan." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #07070f;
+      --bg2:      #0d0d1a;
+      --card:     rgba(255,255,255,0.04);
+      --border:   rgba(255,255,255,0.08);
+      --purple:   #7c3aed;
+      --violet:   #a855f7;
+      --pink:     #ec4899;
+      --text:     #f1f0ff;
+      --muted:    #8b8aa8;
+      --green:    #10b981;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ── Grid background ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(124,58,237,.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124,58,237,.06) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    /* ── Glow orbs ── */
+    .orb {
+      position: fixed; border-radius: 50%;
+      filter: blur(120px); pointer-events: none; z-index: 0;
+    }
+    .orb1 { width: 600px; height: 600px; background: rgba(124,58,237,.18); top: -150px; left: -100px; }
+    .orb2 { width: 500px; height: 500px; background: rgba(236,72,153,.12); top: 40%; right: -150px; }
+    .orb3 { width: 400px; height: 400px; background: rgba(168,85,247,.1); bottom: -100px; left: 30%; }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 40px;
+      background: rgba(7,7,15,.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1.1rem; font-weight: 700; color: var(--text);
+      text-decoration: none;
+    }
+    .nav-logo span { font-size: 1.5rem; }
+    .nav-links { display: flex; gap: 8px; }
+    .btn-nav {
+      padding: 8px 18px; border-radius: 8px; font-size: .875rem;
+      font-weight: 500; cursor: pointer; text-decoration: none;
+      transition: all .2s;
+    }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--purple); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--purple), var(--violet));
+      color: #fff; border: none;
+      box-shadow: 0 0 20px rgba(124,58,237,.4);
+    }
+    .btn-primary:hover { box-shadow: 0 0 32px rgba(124,58,237,.6); transform: translateY(-1px); }
+
+    /* ── Hero ── */
+    .hero {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px; border-radius: 100px;
+      background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.3);
+      font-size: .8rem; font-weight: 600; color: var(--violet);
+      margin-bottom: 28px; letter-spacing: .05em;
+      animation: fadeDown .6s ease;
+    }
+    .badge::before { content: '✦'; }
+
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
+      font-weight: 900; line-height: 1.1; letter-spacing: -.03em;
+      margin-bottom: 24px;
+      animation: fadeDown .6s .1s ease both;
+    }
+    .grad { background: linear-gradient(135deg, #c084fc, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.2rem); color: var(--muted);
+      max-width: 560px; margin: 0 auto 44px;
+      animation: fadeDown .6s .2s ease both;
+    }
+
+    .hero-btns {
+      display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;
+      animation: fadeDown .6s .3s ease both;
+    }
+    .btn-dl {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 28px; border-radius: 12px;
+      font-size: 1rem; font-weight: 600; text-decoration: none;
+      transition: all .25s; border: none; cursor: pointer;
+    }
+    .btn-dl-chrome {
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      color: #fff; box-shadow: 0 0 24px rgba(124,58,237,.45);
+    }
+    .btn-dl-chrome:hover { box-shadow: 0 0 40px rgba(124,58,237,.7); transform: translateY(-2px); }
+    .btn-dl-firefox {
+      background: rgba(255,255,255,.06);
+      color: var(--text); border: 1px solid var(--border);
+    }
+    .btn-dl-firefox:hover { background: rgba(255,255,255,.1); border-color: var(--violet); transform: translateY(-2px); }
+
+    .hero-note {
+      margin-top: 20px; font-size: .8rem; color: var(--muted);
+      animation: fadeDown .6s .4s ease both;
+    }
+
+    /* ── Extension mockup ── */
+    .mockup-wrap {
+      position: relative; z-index: 1;
+      margin: 60px auto 0; max-width: 380px;
+      animation: fadeUp .8s .5s ease both;
+    }
+    .mockup {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 32px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(124,58,237,.2), inset 0 1px 0 rgba(255,255,255,.08);
+      backdrop-filter: blur(20px);
+    }
+    .mockup-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .mockup-title { font-size: .9rem; font-weight: 700; }
+    .mockup-version { font-size: .7rem; color: var(--muted); background: rgba(124,58,237,.2); padding: 2px 8px; border-radius: 100px; }
+    .mockup-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .mockup-btn {
+      flex: 1; padding: 9px; border-radius: 10px; border: 1px solid var(--border);
+      background: rgba(124,58,237,.15); color: var(--violet);
+      font-size: .75rem; font-weight: 600; text-align: center;
+      cursor: default;
+    }
+    .mockup-btn.active { background: linear-gradient(135deg, var(--purple), var(--violet)); color: #fff; border-color: transparent; }
+    .mockup-local { display: flex; gap: 8px; margin-bottom: 16px; }
+    .mockup-local-btn {
+      flex: 1; padding: 7px; border-radius: 8px;
+      border: 1px solid var(--border); background: rgba(255,255,255,.03);
+      font-size: .7rem; color: var(--muted); text-align: center; cursor: default;
+    }
+    .mockup-section { font-size: .65rem; color: var(--muted); margin-bottom: 8px; letter-spacing: .05em; text-transform: uppercase; }
+    .mockup-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 5px 10px; border-radius: 20px;
+      border: 1px solid var(--border); background: rgba(255,255,255,.04);
+      font-size: .7rem; color: var(--text); margin: 3px; cursor: default;
+    }
+    .chip-free { background: rgba(16,185,129,.2); border-color: rgba(16,185,129,.3); color: #10b981; font-size: .6rem; padding: 1px 5px; border-radius: 4px; }
+    .mockup-chips { margin-bottom: 4px; }
+
+    /* ── How it works ── */
+    section { position: relative; z-index: 1; }
+    .section-center { text-align: center; padding: 100px 24px; }
+    .section-label { font-size: .75rem; font-weight: 700; color: var(--violet); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
+    .section-title { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; letter-spacing: -.02em; margin-bottom: 16px; }
+    .section-sub { font-size: 1.05rem; color: var(--muted); max-width: 500px; margin: 0 auto 60px; }
+
+    .steps {
+      display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; max-width: 900px; margin: 0 auto;
+    }
+    .step {
+      flex: 1; min-width: 200px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 32px 24px; text-align: center;
+      position: relative; transition: border-color .2s;
+    }
+    .step:hover { border-color: rgba(124,58,237,.4); }
+    .step-num {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--purple), var(--violet));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; font-weight: 800;
+      margin: 0 auto 16px;
+      box-shadow: 0 0 20px rgba(124,58,237,.4);
+    }
+    .step h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .step p { font-size: .875rem; color: var(--muted); }
+
+    /* ── Features ── */
+    .features { padding: 60px 24px 100px; max-width: 1100px; margin: 0 auto; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .feat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px;
+      transition: all .25s;
+    }
+    .feat-card:hover { border-color: rgba(124,58,237,.3); transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0,0,0,.3); }
+    .feat-icon { font-size: 1.8rem; margin-bottom: 14px; }
+    .feat-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .feat-card p { font-size: .875rem; color: var(--muted); }
+
+    /* ── Providers ── */
+    .providers { padding: 60px 24px 100px; }
+    .providers-inner { max-width: 900px; margin: 0 auto; text-align: center; }
+    .providers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 48px; }
+    .provider-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px 20px;
+      transition: all .2s;
+    }
+    .provider-card:hover { border-color: rgba(124,58,237,.3); transform: translateY(-2px); }
+    .provider-icon { font-size: 2rem; margin-bottom: 10px; }
+    .provider-card h4 { font-size: .95rem; font-weight: 700; margin-bottom: 4px; }
+    .provider-card p { font-size: .8rem; color: var(--muted); }
+    .badge-local { display: inline-block; margin-top: 8px; padding: 2px 8px; border-radius: 4px; font-size: .7rem; font-weight: 600; background: rgba(16,185,129,.15); color: #10b981; border: 1px solid rgba(16,185,129,.3); }
+    .badge-cloud { background: rgba(124,58,237,.15); color: var(--violet); border-color: rgba(124,58,237,.3); }
+
+    /* ── CTA ── */
+    .cta {
+      padding: 100px 24px; text-align: center;
+      background: linear-gradient(180deg, transparent, rgba(124,58,237,.06));
+    }
+    .cta-box {
+      max-width: 640px; margin: 0 auto;
+      background: rgba(124,58,237,.08); border: 1px solid rgba(124,58,237,.2);
+      border-radius: 24px; padding: 60px 40px;
+      box-shadow: 0 0 80px rgba(124,58,237,.1);
+    }
+    .cta h2 { font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 800; margin-bottom: 16px; }
+    .cta p { color: var(--muted); margin-bottom: 36px; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px;
+      font-size: .875rem; color: var(--muted);
+      position: relative; z-index: 1;
+    }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--violet); }
+
+    /* ── Animations ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      nav { padding: 14px 20px; }
+      .btn-nav { display: none; }
+      footer { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <span>🔮</span> ImgPrompt AI
+  </a>
+  <div class="nav-links">
+    <a href="https://github.com/rmaxvell/imgprompt-ai" class="btn-nav btn-ghost" target="_blank">GitHub</a>
+    <a href="https://github.com/rmaxvell/imgprompt-ai/releases/latest" class="btn-nav btn-primary" target="_blank">Download</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="badge">v2.0.0 — Now with local AI support</div>
+
+  <h1>Turn any image into<br>a <span class="grad">perfect AI prompt</span></h1>
+
+  <p class="hero-sub">
+    Hover over any image. Click one button. Get a ready-to-use prompt for
+    Midjourney, Stable Diffusion, FLUX and DALL-E — instantly.
+  </p>
+
+  <div class="hero-btns">
+    <a href="https://github.com/rmaxvell/imgprompt-ai/releases/download/v2.0.0/imgprompt-chrome-v2.0.0.zip"
+       class="btn-dl btn-dl-chrome" id="btn-chrome-download">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+      Chrome / Edge / Brave
+    </a>
+    <a href="https://github.com/rmaxvell/imgprompt-ai/releases/download/v2.0.0-firefox/imgprompt-firefox-v2.0.0.zip"
+       class="btn-dl btn-dl-firefox" id="btn-firefox-download">
+      🦊 Firefox
+    </a>
+  </div>
+
+  <p class="hero-note">Free • Open source • MIT license • No account required</p>
+
+  <!-- Extension mockup -->
+  <div class="mockup-wrap">
+    <div class="mockup">
+      <div class="mockup-header">
+        <span class="mockup-title">🔮 IMGPROMPT AI</span>
+        <span class="mockup-version">v2.0.0</span>
+      </div>
+      <div class="mockup-row">
+        <div class="mockup-btn active">🌐 OpenRouter</div>
+        <div class="mockup-btn">⚡ Groq</div>
+      </div>
+      <div class="mockup-local">
+        <div class="mockup-local-btn">🦙 Ollama</div>
+        <div class="mockup-local-btn">🖥 LM Studio</div>
+        <div class="mockup-local-btn">📦 Jan</div>
+      </div>
+      <div class="mockup-section">✦ Vision Models</div>
+      <div class="mockup-chips">
+        <span class="mockup-chip">Google Gemma 4 31B <span class="chip-free">FREE</span></span>
+        <span class="mockup-chip">Qwen2.5 VL 72B <span class="chip-free">FREE</span></span>
+        <span class="mockup-chip">NVIDIA Nemotron VL <span class="chip-free">FREE</span></span>
+        <span class="mockup-chip">Llama 4 Scout</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section-center" id="how">
+  <div class="section-label">How it works</div>
+  <h2 class="section-title">Three steps to the perfect prompt</h2>
+  <p class="section-sub">No complex setup. No API knowledge required.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Hover over any image</h3>
+      <p>The 🔮 button appears automatically on any image on any webpage.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Click Prompt</h3>
+      <p>One click sends the image to your chosen AI model for analysis.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Copy & create</h3>
+      <p>Get a detailed prompt with positive/negative tags, style, lighting and composition.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="features">
+    <div style="text-align:center; margin-bottom: 48px;">
+      <div class="section-label">Features</div>
+      <h2 class="section-title">Everything you need</h2>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card">
+        <div class="feat-icon">🖼️</div>
+        <h3>Any image, any site</h3>
+        <p>Works on all websites — images, artworks, photos, screenshots. Even video frames from YouTube and Vimeo.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🦙</div>
+        <h3>Local AI — no API key</h3>
+        <p>Use Ollama, LM Studio or Jan on your own hardware. Fully offline, completely private.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📐</div>
+        <h3>Auto image compression</h3>
+        <p>Images are automatically resized to 1024px and compressed before sending — saves bandwidth and memory.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">⏱️</div>
+        <h3>Cancel anytime</h3>
+        <p>Waiting too long? Hit Cancel in the side panel. Smart timeouts: 120s local, 60s cloud.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🕒</div>
+        <h3>History panel</h3>
+        <p>All generated prompts are saved in the side panel. Search, copy or delete them anytime.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🌐</div>
+        <h3>3 output languages</h3>
+        <p>Generate prompts in English, Russian or Chinese — choose in Options.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🔐</div>
+        <h3>Privacy first</h3>
+        <p>No backend server. Your API key is stored only in your browser. Nothing is collected.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">✏️</div>
+        <h3>Custom system prompt</h3>
+        <p>Override the default analysis instructions with your own prompt in Options.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROVIDERS -->
+<section class="providers" id="providers">
+  <div class="providers-inner">
+    <div class="section-label">AI Providers</div>
+    <h2 class="section-title">Cloud or fully local</h2>
+    <p class="section-sub">Connect any OpenAI-compatible provider</p>
+
+    <div class="providers-grid">
+      <div class="provider-card">
+        <div class="provider-icon">🌐</div>
+        <h4>OpenRouter</h4>
+        <p>300+ models, free tier available</p>
+        <span class="badge-local badge-cloud">Cloud</span>
+      </div>
+      <div class="provider-card">
+        <div class="provider-icon">⚡</div>
+        <h4>Groq</h4>
+        <p>Extremely fast inference</p>
+        <span class="badge-local badge-cloud">Cloud</span>
+      </div>
+      <div class="provider-card">
+        <div class="provider-icon">🦙</div>
+        <h4>Ollama</h4>
+        <p>localhost:11434/v1 — no key</p>
+        <span class="badge-local">Local</span>
+      </div>
+      <div class="provider-card">
+        <div class="provider-icon">🖥️</div>
+        <h4>LM Studio</h4>
+        <p>localhost:1234/v1 — no key</p>
+        <span class="badge-local">Local</span>
+      </div>
+      <div class="provider-card">
+        <div class="provider-icon">📦</div>
+        <h4>Jan</h4>
+        <p>localhost:1337/v1 — no key</p>
+        <span class="badge-local">Local</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta" id="download">
+  <div class="cta-box">
+    <h2>Ready to try?</h2>
+    <p>Download ImgPrompt AI for free. No account, no subscription.</p>
+    <div class="hero-btns">
+      <a href="https://github.com/rmaxvell/imgprompt-ai/releases/download/v2.0.0/imgprompt-chrome-v2.0.0.zip"
+         class="btn-dl btn-dl-chrome" id="btn-chrome-download2">
+        🌐 Chrome / Edge / Brave
+      </a>
+      <a href="https://github.com/rmaxvell/imgprompt-ai/releases/download/v2.0.0-firefox/imgprompt-firefox-v2.0.0.zip"
+         class="btn-dl btn-dl-firefox" id="btn-firefox-download2">
+        🦊 Firefox
+      </a>
+    </div>
+    <p style="margin-top:20px; font-size:.8rem; color:var(--muted);">
+      Also available on <a href="https://github.com/rmaxvell/imgprompt-ai" style="color:var(--violet);">GitHub</a>
+    </p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span>🔮 ImgPrompt AI — v2.0.0</span>
+  <div style="display:flex; gap: 20px;">
+    <a href="https://github.com/rmaxvell/imgprompt-ai">GitHub</a>
+    <a href="https://github.com/rmaxvell/imgprompt-ai/releases">Releases</a>
+    <a href="https://github.com/rmaxvell/imgprompt-ai/blob/main/README.md">Docs</a>
+    <a href="https://yoomoney.ru/to/410013803949909">Support ☕</a>
+  </div>
+  <span>MIT License</span>
+</footer>
+
+</body>
+</html>
