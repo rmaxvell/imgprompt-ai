@@ -1,26 +1,65 @@
 // ═══════════════════════════════════════════════════════════════
-//  ImgPrompt AI — Background Service Worker  v2.0
+// ImgPrompt AI — Background Service Worker v2.0
 //
-//  Стратегия получения картинки (от надёжной к запасной):
-//  1. chrome.tabs.captureVisibleTab → кроп по rect — ВСЕГДА работает
-//  2. fetch() из service worker — для загрузки, если картинка не на экране
+// Стратегия получения картинки (от надёжной к запасной):
+// 1. chrome.tabs.captureVisibleTab → кроп по rect — ВСЕГДА работает
+// 2. fetch() из service worker — для загрузки, если картинка не на экране
 // ═══════════════════════════════════════════════════════════════
 
 import { getSystemPrompt, getUserMessage } from './prompts.js';
 
+// ⚠️ Единая точка дефолтов. Перед релизом сверьте ID модели,
+// например: curl https://openrouter.ai/api/v1/models
+const DEFAULT_MODEL = 'qwen/qwen2.5-vl-72b-instruct';
+
 const DEFAULTS = {
   apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
-  apiKey: '',   // user enters their own key in popup
-  model:  'google/gemma-4-31b-it',
+  apiKey: '', // user enters their own key in popup
+  model: DEFAULT_MODEL,
+  language: 'ru', // фолбэк-язык анализа, единый с options
   imageMaxSize: 1024,
   imageQuality: 0.85,
   requestTimeout: 0 // 0 = provider-aware default: 120s local, 60s cloud
 };
 
+// Одноразовая миграция настроек из storage.sync → storage.local.
+// Нужна пользователям, которые уже сохранили ключ со старой версией.
+(async () => {
+  try {
+    const localData = await chrome.storage.local.get(DEFAULTS);
+    const syncData = await chrome.storage.sync.get(null);
+    const migrate = {};
+    for (const k of Object.keys(DEFAULTS)) {
+      if (!localData[k] && syncData[k] !== undefined && syncData[k] !== '') migrate[k] = syncData[k];
+    }
+    // Ключи профилей из popup: key_openrouter, key_groq и т.д.
+    Object.keys(syncData).forEach(k => {
+      if (k.startsWith('key_') && syncData[k] && !localData[k]) migrate[k] = syncData[k];
+    });
+    if (Object.keys(migrate).length) await chrome.storage.local.set(migrate);
+  } catch (e) {
+    console.warn('[ImgPrompt] sync→local migration failed:', e);
+  }
+})();
+
 const MODELS_CACHE_TTL = 5 * 60 * 1000;
 const LOCAL_TIMEOUT_MS = 120 * 1000;
 const CLOUD_TIMEOUT_MS = 60 * 1000;
 let activeRequestController = null;
+
+// Сериализация записи истории: исключает потерю записей
+// при параллельных анализах (read-modify-write без блокировки)
+let historyQueue = Promise.resolve();
+function appendHistory(entry) {
+  historyQueue = historyQueue.then(() => new Promise(resolve => {
+    chrome.storage.local.get({ history: [] }, ({ history }) => {
+      history.push(entry);
+      if (history.length > 50) history.splice(0, history.length - 50);
+      chrome.storage.local.set({ history }, resolve);
+    });
+  }));
+  return historyQueue;
+}
 
 function isLocalProvider(apiUrl = '') {
   try {
@@ -96,15 +135,14 @@ function createRequestController(settings) {
   return { controller, cleanup: () => { clearTimeout(timer); if (activeRequestController === controller) activeRequestController = null; } };
 }
 
-
 // ── Settings ─────────────────────────────────────────────────────
 async function getSettings() {
-  return new Promise(resolve => chrome.storage.sync.get(DEFAULTS, resolve));
+  return new Promise(resolve => chrome.storage.local.get(DEFAULTS, resolve));
 }
 
 async function getConfiguredSystemPrompt(lang) {
   const { systemPrompt } = await new Promise(resolve =>
-    chrome.storage.sync.get({ systemPrompt: '' }, resolve)
+    chrome.storage.local.get({ systemPrompt: '' }, resolve)
   );
 
   return typeof systemPrompt === 'string' && systemPrompt.trim()
@@ -133,12 +171,75 @@ async function compressImageData(imageData, settings) {
   return { base64: btoa(outBinary), mimeType: 'image/jpeg', width, height };
 }
 
+// Миниатюра для истории: маленький JPEG-dataURL из уже полученной картинки.
+// Делает запись самодостаточной — превью не умирает офлайн и при hotlink-защите.
+async function makeThumbnail(imageData, maxSize = 112, quality = 0.7) {
+  try {
+    const binary = atob(imageData.base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: imageData.mimeType || 'image/jpeg' }));
+    const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = new OffscreenCanvas(w, h);
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+    const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality });
+    const buf = new Uint8Array(await blob.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < buf.length; i += 32768) bin += String.fromCharCode(...buf.subarray(i, i + 32768));
+    return `data:image/jpeg;base64,${btoa(bin)}`;
+  } catch (e) {
+    console.warn('[ImgPrompt] makeThumbnail failed:', e.message);
+    return null;
+  }
+}
+
+// ── Image cache (SHA-256 по хэшу сжатого изображения) ────────────────
+const IMG_CACHE_PREFIX = 'imgCache:';
+const IMG_CACHE_MAX    = 100;
+const IMG_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней
+
+async function hashImage(base64) {
+  const buf = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  const digest = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function getCachedResult(hash) {
+  const key = IMG_CACHE_PREFIX + hash;
+  const data = await new Promise(resolve => chrome.storage.local.get({ [key]: null }, resolve));
+  const entry = data[key];
+  if (!entry) return null;
+  if (Date.now() - entry.ts > IMG_CACHE_TTL_MS) {
+    chrome.storage.local.remove(key); // протухшая запись
+    return null;
+  }
+  return entry; // { content, thumbnail, ts }
+}
+
+async function setCachedResult(hash, content, thumbnail) {
+  const key = IMG_CACHE_PREFIX + hash;
+  // Прунинг: удаляем самые старые записи если превышен лимит
+  const all = await new Promise(resolve => chrome.storage.local.get(null, resolve));
+  const cacheKeys = Object.keys(all).filter(k => k.startsWith(IMG_CACHE_PREFIX));
+  if (cacheKeys.length >= IMG_CACHE_MAX) {
+    const oldest = cacheKeys.sort((a, b) => (all[a]?.ts || 0) - (all[b]?.ts || 0));
+    await chrome.storage.local.remove(oldest.slice(0, cacheKeys.length - IMG_CACHE_MAX + 1));
+  }
+  await new Promise(resolve => chrome.storage.local.set({
+    [key]: { content, thumbnail, ts: Date.now() }
+  }, resolve));
+}
+
 // ── Strategy 1: Screenshot + crop (always works, no CORS) ────────
 async function captureViaScreenshot(tabId, rect) {
   console.log('[ImgPrompt] Using captureVisibleTab strategy, rect:', rect);
 
   const dataUrl = await chrome.tabs.captureVisibleTab(tabId, {
-    format:  'jpeg',
+    format: 'jpeg',
     quality: 90
   });
 
@@ -151,16 +252,16 @@ async function captureViaScreenshot(tabId, rect) {
   // Crop to image bounds using OffscreenCanvas (available in service worker)
   const screenResp = await fetch(dataUrl);
   const screenBlob = await screenResp.blob();
-  const bitmap     = await createImageBitmap(screenBlob);
+  const bitmap = await createImageBitmap(screenBlob);
 
-  const dpr    = rect.dpr || 1;
-  const srcX   = Math.round(rect.x      * dpr);
-  const srcY   = Math.round(rect.y      * dpr);
-  const srcW   = Math.round(rect.width  * dpr);
-  const srcH   = Math.round(rect.height * dpr);
+  const dpr = rect.dpr || 1;
+  const srcX = Math.round(rect.x * dpr);
+  const srcY = Math.round(rect.y * dpr);
+  const srcW = Math.round(rect.width * dpr);
+  const srcH = Math.round(rect.height * dpr);
 
   // Clamp to actual screenshot size
-  const clampedW = Math.min(srcW, bitmap.width  - srcX);
+  const clampedW = Math.min(srcW, bitmap.width - srcX);
   const clampedH = Math.min(srcH, bitmap.height - srcY);
 
   if (clampedW < 10 || clampedH < 10) {
@@ -170,14 +271,14 @@ async function captureViaScreenshot(tabId, rect) {
   }
 
   const canvas = new OffscreenCanvas(clampedW, clampedH);
-  const ctx    = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d');
   ctx.drawImage(bitmap, srcX, srcY, clampedW, clampedH, 0, 0, clampedW, clampedH);
   bitmap.close();
 
-  const outBlob  = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.92 });
-  const buffer   = await outBlob.arrayBuffer();
-  const uint8    = new Uint8Array(buffer);
-  let   binary   = '';
+  const outBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.92 });
+  const buffer = await outBlob.arrayBuffer();
+  const uint8 = new Uint8Array(buffer);
+  let binary = '';
   for (let i = 0; i < uint8.length; i += 32768) {
     binary += String.fromCharCode(...uint8.subarray(i, i + 32768));
   }
@@ -193,20 +294,20 @@ async function captureViaScreenshot(tabId, rect) {
 async function captureViaUrlFetch(imageUrl) {
   console.log('[ImgPrompt] Fallback: fetching URL from service worker:', imageUrl);
 
+  // User-Agent убран: это forbidden header, браузер его молча выбрасывал
   const resp = await fetch(imageUrl, {
     headers: {
-      'Accept':     'image/*,*/*;q=0.8',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      'Accept': 'image/*,*/*;q=0.8'
     }
   });
 
   if (!resp.ok) throw new Error(`Fetch failed: HTTP ${resp.status}`);
 
-  const blob     = await resp.blob();
+  const blob = await resp.blob();
   const mimeType = blob.type || 'image/jpeg';
-  const buffer   = await blob.arrayBuffer();
-  const uint8    = new Uint8Array(buffer);
-  let   binary   = '';
+  const buffer = await blob.arrayBuffer();
+  const uint8 = new Uint8Array(buffer);
+  let binary = '';
   for (let i = 0; i < uint8.length; i += 32768) {
     binary += String.fromCharCode(...uint8.subarray(i, i + 32768));
   }
@@ -246,9 +347,17 @@ async function runAnalysis(tabId, imageUrl, imageRect, lang) {
   const { base64, mimeType } = compressedImage;
   console.log('[ImgPrompt] Compressed image:', compressedImage.width, 'x', compressedImage.height, 'base64:', base64.length);
 
-  // Call OpenRouter API
+  // Проверяем кэш: если эту же картинку уже анализировали — отдаём результат мгновенно
+  const imageHash = await hashImage(base64);
+  const cached = await getCachedResult(imageHash);
+  if (cached) {
+    console.log('[ImgPrompt] ⚡ Cache hit:', imageHash.slice(0, 8));
+    return { content: cached.content, thumbnail: cached.thumbnail };
+  }
+
+  // Call OpenRouter-compatible API
   const { apiUrl, apiKey, model } = settings;
-  const promptLang   = lang || 'en';                          // не переписываем параметр!
+  const promptLang = lang || settings.language || 'en';
   const systemPrompt = await getConfiguredSystemPrompt(promptLang);
   console.log('[ImgPrompt] API:', apiUrl, '| model:', model, '| lang:', promptLang);
 
@@ -256,31 +365,31 @@ async function runAnalysis(tabId, imageUrl, imageRect, lang) {
   let resp;
   try {
     resp = await fetch(apiUrl, {
-    method:  'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-      'HTTP-Referer':  'https://imgprompt.extension',
-      'X-Title':       'ImgPrompt AI Extension'
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        {
-          role: 'user',
-          content: [
-            {
-              type:      'image_url',
-              image_url: { url: `data:${mimeType};base64,${base64}`, detail: 'high' }
-            },
-            { type: 'text', text: getUserMessage(promptLang, 'image') }
-          ]
-        }
-      ],
-      max_tokens:  2000,
-      temperature: 0.4
-    })
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://imgprompt.extension',
+        'X-Title': 'ImgPrompt AI Extension'
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: { url: `data:${mimeType};base64,${base64}`, detail: 'high' }
+              },
+              { type: 'text', text: getUserMessage(promptLang, 'image') }
+            ]
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.4
+      })
     });
   } catch (error) {
     throw new Error(formatApiError(error, settings));
@@ -300,19 +409,24 @@ async function runAnalysis(tabId, imageUrl, imageRect, lang) {
     throw new Error(formatApiError(new Error(errMsg), settings, resp.status));
   }
 
-  const data    = JSON.parse(text);
+  const data = JSON.parse(text);
   const content = data.choices?.[0]?.message?.content;
   if (!content) throw new Error('Пустой ответ API. Ответ: ' + text.slice(0, 150));
 
-  return content;
+  const thumbnail = await makeThumbnail(compressedImage);
+  // Сохраняем в кэш — ошибка записи не критична, поэтому catch
+  setCachedResult(imageHash, content, thumbnail).catch(e =>
+    console.warn('[ImgPrompt] Cache write failed:', e.message)
+  );
+  return { content, thumbnail };
 }
 
 // ── Context menu ─────────────────────────────────────────────────
 function setupContextMenu() {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
-      id:       'imgprompt-analyze',
-      title:    '\uD83D\uDD2E ImgPrompt — получить промпт',
+      id: 'imgprompt-analyze',
+      title: '\uD83D\uDD2E ImgPrompt — получить промпт',
       contexts: ['image']
     });
   });
@@ -330,16 +444,16 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
   // Send to content script — it will find the image rect and reply
   chrome.tabs.sendMessage(tab.id, {
-    type:     'START_ANALYSIS',
+    type: 'START_ANALYSIS',
     imageUrl: info.srcUrl || ''
   }).catch(() => {
     // Inject content script if not present
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files:  ['content.js']
+      files: ['content.js']
     }).then(() => {
       chrome.tabs.sendMessage(tab.id, {
-        type:     'START_ANALYSIS',
+        type: 'START_ANALYSIS',
         imageUrl: info.srcUrl || ''
       });
     });
@@ -366,8 +480,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // ★ Mark loading in side panel + open it
     chrome.storage.local.set({
       pendingAnalysis: {
-        status:    'loading',
-        imageUrl:  msg.imageUrl || null,
+        status: 'loading',
+        imageUrl: msg.imageUrl || null,
         timestamp: Date.now()
       }
     });
@@ -375,34 +489,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.sidePanel.open({ tabId }).catch(() => {});
 
     runAnalysis(tabId, msg.imageUrl, msg.imageRect, msg.lang || 'en')
-      .then(result => {
+      .then(({ content, thumbnail }) => {
         console.log('[ImgPrompt] ✅ Analysis complete');
 
-        // Save to history
-        chrome.storage.sync.get({ model: 'qwen/qwen2.5-vl-72b-instruct' }, ({ model }) => {
-          chrome.storage.local.get({ history: [] }, ({ history }) => {
-            history.push({
-              thumb:  msg.imageUrl,
-              prompt: result,
-              model,
-              ts: Date.now()
-            });
-            if (history.length > 50) history.splice(0, history.length - 50);
-            chrome.storage.local.set({ history });
-          });
-        });
+        // Локальная миниатюра (dataURL) приоритетнее удалённого URL:
+        // она не зависит от сайта и интернета.
+        getSettings().then(s => appendHistory({
+          thumb: thumbnail || msg.imageUrl || null,
+          prompt: content,
+          model: s.model,
+          ts: Date.now()
+        }));
 
         // ★ Update side panel with result
         chrome.storage.local.set({
           pendingAnalysis: {
-            status:    'done',
-            result,
-            imageUrl:  msg.imageUrl || null,
+            status: 'done',
+            result: content,
+            imageUrl: msg.imageUrl || null,
             timestamp: Date.now()
           }
         });
 
-        sendResponse({ success: true, result });
+        sendResponse({ success: true, result: content });
       })
       .catch(err => {
         console.error('[ImgPrompt] ❌ Error:', err.message);
@@ -410,8 +519,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // ★ Write error to side panel too
         chrome.storage.local.set({
           pendingAnalysis: {
-            status:    'error',
-            error:     err.message,
+            status: 'error',
+            error: err.message,
             timestamp: Date.now()
           }
         });
@@ -434,7 +543,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
 
         const { apiUrl, apiKey, model } = settings;
-        const promptLang   = msg.lang || 'en';
+        const promptLang = msg.lang || settings.language || 'en';
         const systemPrompt = await getConfiguredSystemPrompt(promptLang);
 
         // Extract base64 from dataUrl (data:image/jpeg;base64,XXX)
@@ -446,20 +555,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         let resp;
         try {
           resp = await fetch(apiUrl, {
-          method:  'POST',
-          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user',   content: [
-                { type: 'text',       text: getUserMessage(promptLang, 'video') },
-                { type: 'image_url',  image_url: { url: `data:${compressed.mimeType};base64,${compressed.base64}` } }
-              ]}
-            ],
-            max_tokens: 2000,
-            temperature: 0.4
-          })
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: [
+                  { type: 'text', text: getUserMessage(promptLang, 'video') },
+                  { type: 'image_url', image_url: { url: `data:${compressed.mimeType};base64,${compressed.base64}` } }
+                ]}
+              ],
+              max_tokens: 2000,
+              temperature: 0.4
+            })
           });
         } catch (error) {
           throw new Error(formatApiError(error, settings));
@@ -473,16 +582,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           try { errMsg = JSON.parse(text).error?.message || errMsg; } catch(_) {}
           throw new Error(formatApiError(new Error(errMsg), settings, resp.status));
         }
-        const data    = JSON.parse(text);
+        const data = JSON.parse(text);
         const content = data.choices?.[0]?.message?.content;
         if (!content) throw new Error('Пустой ответ API');
 
-        // Save to history
-        chrome.storage.local.get({ history: [] }, ({ history }) => {
-          history.push({ thumb: null, prompt: content, model, ts: Date.now(), source: 'video' });
-          if (history.length > 50) history.splice(0, history.length - 50);
-          chrome.storage.local.set({ history });
-        });
+        // Кадр видео теперь тоже получает постоянную миниатюру
+        const videoThumb = await makeThumbnail(compressed);
+        appendHistory({ thumb: videoThumb || null, prompt: content, model, ts: Date.now(), source: 'video' });
 
         sendResponse({ success: true, result: content });
       } catch(e) {
@@ -517,7 +623,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             const arch = m.architecture || {};
             const inputs = arch.input_modalities || arch.modality || [];
             const inputStr = Array.isArray(inputs) ? inputs.join(',') : String(inputs);
-            return inputStr.includes('image') || inputStr.includes('multimodal') || /vision|vl|image/i.test(m.id || '');
+            return inputStr.includes('image') || inputStr.includes('multimodal') || /vision|vl|image|llama-4|scout|maverick|gemini|gpt-4o|pixtral/i.test(m.id || '');
           })
           .sort((a, b) => parseFloat(a.pricing?.prompt || '0') - parseFloat(b.pricing?.prompt || '0'))
           .map(m => ({ id: m.id, name: m.name || m.id, free: parseFloat(m.pricing?.prompt || '0') === 0 }));

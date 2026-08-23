@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
-//  ImgPrompt AI — Content Script
-//  UI: hover overlay кнопки + floating panel (как PromptCard)
-//  Вся логика (fetch + API) делается в background.js
+// ImgPrompt AI — Content Script
+// UI: hover overlay кнопки + floating panel (как PromptCard)
+// Вся логика (fetch + API) делается в background.js
 // ═══════════════════════════════════════════════════════════════
 
 (() => {
@@ -22,6 +22,7 @@
   let dragging = false;
   let dragOffset = { x: 0, y: 0 };
   let currentResult = '';
+  let currentVideoFrame = null; // последний захваченный кадр видео (dataURL)
 
   // ─── CSS ───────────────────────────────────────────────────────
   const CSS = `
@@ -187,7 +188,7 @@
     }
     @keyframes pulse {
       0%,100% { box-shadow:0 0 0 0 rgba(124,106,247,0.5); }
-      50%      { box-shadow:0 0 0 16px rgba(124,106,247,0); }
+      50%     { box-shadow:0 0 0 16px rgba(124,106,247,0); }
     }
     .loading-msg { font-size:12px; color:rgba(148,163,184,0.85); }
     .ldots::after { content:''; animation: dots 1.5s steps(4) infinite; }
@@ -328,7 +329,7 @@
   function captureVideoFrame(video) {
     try {
       const canvas = document.createElement('canvas');
-      canvas.width  = video.videoWidth  || video.clientWidth  || 640;
+      canvas.width = video.videoWidth || video.clientWidth || 640;
       canvas.height = video.videoHeight || video.clientHeight || 360;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -372,14 +373,14 @@
 
     // Position top-right of element
     const margin = 8;
-    const menuW  = 84;
-    const menuH  = 72;
+    const menuW = 84;
+    const menuH = 72;
     let left = Math.round(rect.right - menuW - margin);
-    let top  = Math.round(rect.top + margin);
-    left = Math.max(margin, Math.min(left, window.innerWidth  - menuW - margin));
-    top  = Math.max(margin, Math.min(top,  window.innerHeight - menuH - margin));
+    let top = Math.round(rect.top + margin);
+    left = Math.max(margin, Math.min(left, window.innerWidth - menuW - margin));
+    top = Math.max(margin, Math.min(top, window.innerHeight - menuH - margin));
     menu.style.left = `${left}px`;
-    menu.style.top  = `${top}px`;
+    menu.style.top = `${top}px`;
 
     promptBtn.addEventListener('click', e => {
       e.preventDefault(); e.stopPropagation();
@@ -416,7 +417,7 @@
 
   // ─── Mouse listeners ───────────────────────────────────────────
   document.addEventListener('mouseover', e => {
-    // Check <img>
+    // Check images
     const img = e.target instanceof HTMLImageElement ? e.target : e.target.closest?.('img');
     if (img && isEligible(img)) {
       clearTimeout(hoverTimer);
@@ -424,7 +425,7 @@
       if (img !== currentHoverImg) { currentHoverImg = img; showHoverMenu(img, 'img'); }
       return;
     }
-    // Check <video>
+    // Check videos
     const vid = e.target instanceof HTMLVideoElement ? e.target : e.target.closest?.('video');
     if (vid && isEligibleVideo(vid)) {
       clearTimeout(hoverTimer);
@@ -456,10 +457,17 @@
     panelWrap = null;
   }
 
+  // Экранирование HTML: защита от XSS через вывод LLM
+  function escHtml(s) {
+    return String(s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // Сначала экранируем весь ввод, потом добавляем свои теги — инъекция невозможна
   function renderMd(text) {
-    return text
+    return escHtml(text)
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\n/g, '<br>');
+      .replace(/\n/g, '\n'); // переносы сохраняются: у .result-area есть white-space:pre-wrap
   }
 
   // Вырезает готовый промпт: от ✨-заголовка до следующего заголовка любой секции
@@ -470,7 +478,7 @@
     if (!m) return text.trim();
 
     const after = text.slice(m.index + m[0].length);
-    const endRx = /\n\s*\*\*/;          // следующий заголовок секции
+    const endRx = /\n\s*\*\*/; // следующий заголовок секции
     const e = endRx.exec(after);
     return (e ? after.slice(0, e.index) : after).trim();
   }
@@ -484,7 +492,7 @@
     const wrap = document.createElement('div');
     wrap.className = 'panel-wrap';
     wrap.style.left = `${pos.x}px`;
-    wrap.style.top  = `${pos.y}px`;
+    wrap.style.top = `${pos.y}px`;
 
     const panel = document.createElement('div');
     panel.className = 'panel';
@@ -497,17 +505,19 @@
       <div class="ph">
         <div class="ph-left">
           <div class="ph-logo">🔮</div>
-          <div>
-            <div class="ph-title">IMGPROMPT AI</div>
-            <div class="ph-ver">v1.0</div>
-          </div>
+          <div class="ph-title">ImgPrompt AI</div>
+          <div class="ph-ver"></div>
         </div>
         <div class="ph-right">
-          <button class="ph-btn" id="ip-reload" title="Заново">↺</button>
+          <button class="ph-btn" id="ip-reload" title="Анализировать заново">↺</button>
           <button class="ph-btn close" id="ip-close" title="Закрыть">✕</button>
         </div>
       </div>
     `;
+
+    // Версия берётся из манифеста, а не захардкожена
+    const verEl = inner.querySelector('.ph-ver');
+    if (verEl) verEl.textContent = 'v' + chrome.runtime.getManifest().version;
 
     // Preview
     if (imgSrc) {
@@ -539,7 +549,7 @@
       currentResult = data;
       const resultDiv = document.createElement('div');
       resultDiv.className = 'result-area';
-      resultDiv.innerHTML = renderMd(data);
+      resultDiv.innerHTML = renderMd(data); // безопасно: всё экранировано в renderMd
       inner.appendChild(resultDiv);
 
       // Footer: Copy + lang tabs + retry
@@ -569,11 +579,10 @@
           e.stopPropagation();
           if (currentLang === id) return;
           currentLang = id;
+          chrome.storage.local.set({ language: id }); // выбор запоминается глобально
           // Re-run analysis with new language
           langTabs.querySelectorAll('.ltab').forEach(t => t.classList.toggle('active', t.dataset.lang === id));
-          if (currentImgSrc) {
-            sendAnalysisRequest(currentImgSrc, currentImgRect);
-          }
+          rerunLastAnalysis();
         });
         langTabs.appendChild(tab);
       });
@@ -594,9 +603,19 @@
       err.textContent = data;
       inner.appendChild(err);
 
+      // Кнопка повтора работает и после ошибок видео-кадров
       const footer = document.createElement('div');
       footer.className = 'footer';
-      footer.innerHTML = `<button class="fbtn copy" id="ip-retry">↺ Попробовать снова</button>`;
+
+      const againBtn = document.createElement('button');
+      againBtn.className = 'fbtn retry';
+      againBtn.id = 'ip-error-retry';
+      againBtn.style.width = 'auto';
+      againBtn.style.padding = '0 14px';
+      againBtn.textContent = '↺ Попробовать снова';
+      againBtn.addEventListener('click', e => { e.stopPropagation(); rerunLastAnalysis(); });
+
+      footer.appendChild(againBtn);
       inner.appendChild(footer);
     }
 
@@ -614,19 +633,15 @@
     shadow.appendChild(wrap);
     panelWrap = wrap;
 
-    // Events
-    shadow.getElementById?.('ip-close')?.addEventListener('click', e => {
-      e.stopPropagation(); removePanel();
-    });
-    // Fallback querySelector
-    const closeBtn  = wrap.querySelector('#ip-close');
+    // Events (один обработчик на кнопку, без дублей)
+    const closeBtn = wrap.querySelector('#ip-close');
     const reloadBtn = wrap.querySelector('#ip-reload');
-    const copyBtn   = wrap.querySelector('#ip-copy');
-    const retryBtn  = wrap.querySelector('#ip-retry');
+    const copyBtn = wrap.querySelector('#ip-copy');
+    const retryBtn = wrap.querySelector('#ip-retry');
 
-    closeBtn?.addEventListener('click',  e => { e.stopPropagation(); removePanel(); });
-    reloadBtn?.addEventListener('click', e => { e.stopPropagation(); if (currentImgSrc) retryAnalysis(); });
-    retryBtn?.addEventListener('click',  e => { e.stopPropagation(); if (currentImgSrc) retryAnalysis(); });
+    closeBtn?.addEventListener('click', e => { e.stopPropagation(); removePanel(); });
+    reloadBtn?.addEventListener('click', e => { e.stopPropagation(); rerunLastAnalysis(); });
+    retryBtn?.addEventListener('click', e => { e.stopPropagation(); rerunLastAnalysis(); });
 
     copyBtn?.addEventListener('click', e => {
       e.stopPropagation();
@@ -653,18 +668,15 @@
       panel.classList.add('dragging');
       e.preventDefault();
     });
-
-    document.addEventListener('mousemove', onDragMove);
-    document.addEventListener('mouseup',   onDragEnd);
   }
 
   function onDragMove(e) {
     if (!dragging || !panelWrap) return;
-    const x = Math.max(0, Math.min(e.clientX - dragOffset.x, window.innerWidth  - 360));
+    const x = Math.max(0, Math.min(e.clientX - dragOffset.x, window.innerWidth - 360));
     const y = Math.max(0, Math.min(e.clientY - dragOffset.y, window.innerHeight - 100));
     panelPos = { x, y };
     panelWrap.style.left = `${x}px`;
-    panelWrap.style.top  = `${y}px`;
+    panelWrap.style.top = `${y}px`;
   }
 
   function onDragEnd() {
@@ -672,6 +684,10 @@
     dragging = false;
     panelWrap?.querySelector('.panel')?.classList.remove('dragging');
   }
+
+  // Навешиваются ОДИН раз на уровне модуля — без утечки при каждом buildPanel()
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup', onDragEnd);
 
   // ─── Toast ─────────────────────────────────────────────────────
   function toast(msg) {
@@ -686,8 +702,22 @@
 
   // ─── Analysis trigger ──────────────────────────────────────────
   let analysisRunning = false;
-  let currentImgRect  = null;
-  let currentLang     = 'en'; // 'ru' | 'en' | 'zh'
+  let currentImgRect = null;
+  let currentLang = 'en'; // 'ru' | 'en' | 'zh'
+
+  const VALID_LANGS = ['ru', 'en', 'zh'];
+
+  // Стартовый язык панели — из настроек расширения (options → «Язык ответа»)
+  chrome.storage.local.get({ language: '' }, ({ language }) => {
+    if (VALID_LANGS.includes(language)) currentLang = language;
+  });
+
+  // Смена языка в настройках подхватывается живьём (кроме уже идущего анализа)
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !changes.language || analysisRunning) return;
+    const v = changes.language.newValue;
+    if (VALID_LANGS.includes(v)) currentLang = v;
+  });
 
   function sendAnalysisRequest(url, rect) {
     analysisRunning = true;
@@ -696,10 +726,10 @@
 
     // background.js does: captureVisibleTab → crop to rect → call API
     chrome.runtime.sendMessage({
-      type:      'ANALYZE_IMAGE',
-      imageUrl:  url,
+      type: 'ANALYZE_IMAGE',
+      imageUrl: url,
       imageRect: rect,
-      lang:      currentLang
+      lang: currentLang
     }, response => {
       analysisRunning = false;
 
@@ -724,6 +754,7 @@
     const url = img ? (img.currentSrc || img.src) : currentImgSrc;
     if (!url) return;
     currentImgSrc = url;
+    currentVideoFrame = null; // предыдущий кадр видео больше не актуален
     currentHoverImg = img;
 
     let rect = null;
@@ -738,14 +769,15 @@
   // For video frames: we already have base64 dataUrl — skip screenshot capture
   function triggerAnalysisWithDataUrl(dataUrl, rect) {
     if (analysisRunning) return;
+    currentVideoFrame = dataUrl; // запоминаем кадр для «Попробовать снова» / смены языка
     analysisRunning = true;
     removeMenu();
     buildPanel(null, 'loading', null);
 
     chrome.runtime.sendMessage({
-      type:      'ANALYZE_IMAGE_DATA',   // new message type handled in background.js
+      type: 'ANALYZE_IMAGE_DATA',
       dataUrl,
-      lang:      currentLang
+      lang: currentLang
     }, response => {
       analysisRunning = false;
       if (chrome.runtime.lastError) {
@@ -763,10 +795,14 @@
   // Alias showToast → toast
   function showToast(msg) { toast(msg); }
 
-  // Retry uses the same URL and rect as the last analysis
-  function retryAnalysis() {
-    if (analysisRunning || !currentImgSrc) return;
-    sendAnalysisRequest(currentImgSrc, currentImgRect);
+  // Повтор последнего анализа: обычной картинки или кадра видео
+  function rerunLastAnalysis() {
+    if (analysisRunning) return;
+    if (currentImgSrc) {
+      sendAnalysisRequest(currentImgSrc, currentImgRect);
+    } else if (currentVideoFrame) {
+      triggerAnalysisWithDataUrl(currentVideoFrame, null);
+    }
   }
 
   // ─── Context menu ──────────────────────────────────────────────
@@ -776,7 +812,7 @@
       const url = msg.imageUrl;
       if (!url) return;
 
-      // Find matching <img> on page
+      // Find matching on page
       const imgs = Array.from(document.querySelectorAll('img'));
       const found = imgs.find(i => i.src === url || i.currentSrc === url);
 
