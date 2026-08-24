@@ -497,7 +497,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
     });
     // Open side panel automatically
-    chrome.sidePanel.open({ tabId }).catch(() => {});
+    if (chrome.sidePanel?.open) chrome.sidePanel.open({ tabId }).catch(() => {});
 
     runAnalysis(tabId, msg.imageUrl, msg.imageRect, msg.lang || 'en')
       .then(({ content, thumbnail }) => {
