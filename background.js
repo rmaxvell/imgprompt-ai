@@ -245,10 +245,10 @@ async function setCachedResult(hash, content, thumbnail) {
 }
 
 // ── Strategy 1: Screenshot + crop (always works, no CORS) ────────
-async function captureViaScreenshot(tabId, rect) {
-  console.log('[ImgPrompt] Using captureVisibleTab strategy, rect:', rect);
+async function captureViaScreenshot(windowId, rect) {
+  console.log('[ImgPrompt] Using captureVisibleTab strategy, windowId:', windowId, 'rect:', rect);
 
-  const dataUrl = await chrome.tabs.captureVisibleTab(tabId, {
+  const dataUrl = await browser.tabs.captureVisibleTab(windowId, {
     format: 'jpeg',
     quality: 90
   });
@@ -328,7 +328,7 @@ async function captureViaUrlFetch(imageUrl) {
 }
 
 // ── Main analysis ─────────────────────────────────────────────────
-async function runAnalysis(tabId, imageUrl, imageRect, lang) {
+async function runAnalysis(tabId, windowId, imageUrl, imageRect, lang) {
   const settings = await getSettings();
 
   // ★ Local providers (Ollama, LM Studio, Jan) don't require an API key
@@ -339,7 +339,7 @@ async function runAnalysis(tabId, imageUrl, imageRect, lang) {
   // Try screenshot+crop first (most reliable), fall back to URL fetch
   let imageData;
   try {
-    imageData = await captureViaScreenshot(tabId, imageRect);
+    imageData = await captureViaScreenshot(windowId, imageRect);
   } catch (screenshotErr) {
     console.warn('[ImgPrompt] Screenshot failed:', screenshotErr.message, '— trying URL fetch');
     try {
@@ -479,7 +479,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   // Content script sends: { type, imageUrl, imageRect }
   // imageRect: { x, y, width, height, dpr } — viewport coords of the image
   if (msg.type === 'ANALYZE_IMAGE') {
-    const tabId = sender.tab?.id;
+    const tabId    = sender.tab?.id;
+    const windowId = sender.tab?.windowId;
     if (!tabId) {
       sendResponse({ success: false, error: 'Нет tabId — невозможно захватить экран' });
       return true;
@@ -500,7 +501,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Open side panel automatically
     if (chrome.sidePanel?.open) chrome.sidePanel.open({ tabId }).catch(() => {});
 
-    runAnalysis(tabId, msg.imageUrl, msg.imageRect, msg.lang || 'en')
+    runAnalysis(tabId, windowId, msg.imageUrl, msg.imageRect, msg.lang || 'en')
       .then(({ content, thumbnail }) => {
         console.log('[ImgPrompt] ✅ Analysis complete');
 
