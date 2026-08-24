@@ -74,11 +74,11 @@ let activeProfileId = 'openrouter';
 
 // ── Helpers ──────────────────────────────────────────────────────
 function getBaseUrl(chatUrl = '') {
- return chatUrl.replace(/\\/chat\\/completions$/i, '').replace(/\\/$/, '');
+ return chatUrl.replace(/\/chat\/completions$/i, '').replace(/\/$/, '');
 }
 function toChatUrl(base = '') {
- const b = base.replace(/\\/$/, '');
- return /\\/chat\\/completions$/i.test(b) ? b : `${b}/chat/completions`;
+ const b = base.replace(/\/$/, '');
+ return /\/chat\/completions$/i.test(b) ? b : `${b}/chat/completions`;
 }
 function providerName(base = '') {
  // ⚠️ groq ДОЛЖЕН проверяться раньше openai: URL Groq содержит '/openai/v1'
@@ -91,7 +91,7 @@ function providerName(base = '') {
  if (base.includes('1234')) return 'LM Studio';
  if (base.includes('1337')) return 'Jan';
  if (base.includes('localhost') || base.includes('127.0.0.1')) return 'Local';
- return base.replace(/^https?:\\/\\//, '').split('/')[0].split('.')[0] || 'API';
+ return base.replace(/^https?:\/\//, '').split('/')[0].split('.')[0] || 'API';
 }
 
 // ── Load settings ────────────────────────────────────────────────
