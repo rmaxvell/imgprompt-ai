@@ -1,10 +1,10 @@
-// ── Profiles ─────────────────────────────────────────────────────
-// Пресеты ниже — только фолбэк до первого нажатия «Проверить соединение»,
-// которое заменяет их живым списком от провайдера.
+// в”Ђв”Ђ Profiles в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// РџСЂРµСЃРµС‚С‹ РЅРёР¶Рµ вЂ” С‚РѕР»СЊРєРѕ С„РѕР»Р±СЌРє РґРѕ РїРµСЂРІРѕРіРѕ РЅР°Р¶Р°С‚РёСЏ В«РџСЂРѕРІРµСЂРёС‚СЊ СЃРѕРµРґРёРЅРµРЅРёРµВ»,
+// РєРѕС‚РѕСЂРѕРµ Р·Р°РјРµРЅСЏРµС‚ РёС… Р¶РёРІС‹Рј СЃРїРёСЃРєРѕРј РѕС‚ РїСЂРѕРІР°Р№РґРµСЂР°.
 const PROFILES = {
  openrouter: {
  name: 'OpenRouter',
- icon: '🌐',
+ icon: 'рџЊђ',
  baseUrl: 'https://openrouter.ai/api/v1',
  defaultModel: 'qwen/qwen2.5-vl-72b-instruct',
  models: [
@@ -18,18 +18,18 @@ const PROFILES = {
  },
  groq: {
  name: 'Groq',
- icon: '⚡',
+ icon: 'вљЎ',
  baseUrl: 'https://api.groq.com/openai/v1',
  defaultModel: 'meta-llama/llama-4-scout-17b-16e-instruct',
  models: [
- // ⚠️ У Groq ID строго с префиксом meta-llama/. llama-3.2-*-vision-preview выведены из эксплуатации.
+ // вљ пёЏ РЈ Groq ID СЃС‚СЂРѕРіРѕ СЃ РїСЂРµС„РёРєСЃРѕРј meta-llama/. llama-3.2-*-vision-preview РІС‹РІРµРґРµРЅС‹ РёР· СЌРєСЃРїР»СѓР°С‚Р°С†РёРё.
  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout 17B', free: true, tag: 'BEST', cls: 'llama' },
  { id: 'meta-llama/llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick 17B', free: true, tag: '', cls: 'llama' },
  ]
  },
  ollama: {
  name: 'Ollama',
- icon: '🦙',
+ icon: 'рџ¦™',
  baseUrl: 'http://localhost:11434/v1',
  defaultModel: 'llava',
  requiresKey: false,
@@ -42,7 +42,7 @@ const PROFILES = {
  },
  lmstudio: {
  name: 'LM Studio',
- icon: '🖥',
+ icon: 'рџ–Ґ',
  baseUrl: 'http://localhost:1234/v1',
  defaultModel: 'llava',
  requiresKey: false,
@@ -53,7 +53,7 @@ const PROFILES = {
  },
  jan: {
  name: 'Jan',
- icon: '🤖',
+ icon: 'рџ¤–',
  baseUrl: 'http://localhost:1337/v1',
  defaultModel: 'llava',
  requiresKey: false,
@@ -72,7 +72,7 @@ const FACTORY_DEFAULTS = {
 // active profile key ('openrouter' | 'groq' | ...)
 let activeProfileId = 'openrouter';
 
-// ── Helpers ──────────────────────────────────────────────────────
+// в”Ђв”Ђ Helpers в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 function getBaseUrl(chatUrl = '') {
  return chatUrl.replace(/\\/chat\\/completions$/i, '').replace(/\\/$/, '');
 }
@@ -81,7 +81,7 @@ function toChatUrl(base = '') {
  return /\\/chat\\/completions$/i.test(b) ? b : `${b}/chat/completions`;
 }
 function providerName(base = '') {
- // ⚠️ groq ДОЛЖЕН проверяться раньше openai: URL Groq содержит '/openai/v1'
+ // вљ пёЏ groq Р”РћР›Р–Р•Рќ РїСЂРѕРІРµСЂСЏС‚СЊСЃСЏ СЂР°РЅСЊС€Рµ openai: URL Groq СЃРѕРґРµСЂР¶РёС‚ '/openai/v1'
  if (base.includes('openrouter')) return 'OpenRouter';
  if (base.includes('groq')) return 'Groq';
  if (base.includes('openai')) return 'OpenAI';
@@ -94,8 +94,8 @@ function providerName(base = '') {
  return base.replace(/^https?:\\/\\//, '').split('/')[0].split('.')[0] || 'API';
 }
 
-// ── Load settings ────────────────────────────────────────────────
-// Хранилище — chrome.storage.LOCAL: ключи не должны уезжать в аккаунт Google
+// в”Ђв”Ђ Load settings в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// РҐСЂР°РЅРёР»РёС‰Рµ вЂ” chrome.storage.LOCAL: РєР»СЋС‡Рё РЅРµ РґРѕР»Р¶РЅС‹ СѓРµР·Р¶Р°С‚СЊ РІ Р°РєРєР°СѓРЅС‚ Google
 function loadSettings() {
  return new Promise(resolve => {
  chrome.storage.local.get(null, data => {
@@ -111,7 +111,7 @@ function loadSettings() {
  });
 }
 
-// ── Save settings ────────────────────────────────────────────────
+// в”Ђв”Ђ Save settings в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 function saveSettingsNow() {
  const base = document.getElementById('baseUrl')?.value.trim() || '';
  const key = document.getElementById('apiKey')?.value.trim() || '';
@@ -126,7 +126,7 @@ function saveSettingsNow() {
  return new Promise(resolve => chrome.storage.local.set(save, resolve));
 }
 
-// ── Switch profile ───────────────────────────────────────────────
+// в”Ђв”Ђ Switch profile в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 window.switchProfile = function(profileId) {
  if (!PROFILES[profileId]) return;
  activeProfileId = profileId;
@@ -159,13 +159,13 @@ window.switchProfile = function(profileId) {
 window.saveSettings = async function() {
  if (!validateFields()) return;
  await saveSettingsNow();
- flashBtn('saveBtn', '✅ Сохранено!', '💾 Сохранить', 'saved');
+ flashBtn('saveBtn', 'вњ… РЎРѕС…СЂР°РЅРµРЅРѕ!', 'рџ’ѕ РЎРѕС…СЂР°РЅРёС‚СЊ', 'saved');
  updateHeader();
 };
 
-// ── Reset ────────────────────────────────────────────────────────
+// в”Ђв”Ђ Reset в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 window.resetToDefaults = function() {
- // Keep the API key — only reset URL and model
+ // Keep the API key вЂ” only reset URL and model
  const key = document.getElementById('apiKey')?.value.trim() || '';
  chrome.storage.local.set({
  apiUrl: FACTORY_DEFAULTS.apiUrl,
@@ -175,35 +175,39 @@ window.resetToDefaults = function() {
  document.getElementById('baseUrl').value = getBaseUrl(FACTORY_DEFAULTS.apiUrl);
  document.getElementById('modelInput').value = FACTORY_DEFAULTS.model;
  syncChips(FACTORY_DEFAULTS.model);
- flashBtn('resetBtn', '✅ Сброшено', '↺ Сброс', 'saved');
+ flashBtn('resetBtn', 'вњ… РЎР±СЂРѕС€РµРЅРѕ', 'в†є РЎР±СЂРѕСЃ', 'saved');
  updateHeader();
  });
 };
 
-// ── Open Side Panel ──────────────────────────────────────────────
+// в”Ђв”Ђ Open Side Panel в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 window.openSidePanel = function() {
- chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
- if (!tabs[0]?.id) return;
- chrome.sidePanel.open({ tabId: tabs[0].id })
- .then(() => window.close())
- .catch(e => console.warn('[ImgPrompt] sidePanel.open failed:', e));
- });
+  if (!chrome.sidePanel?.open) {
+    showResult('вљ пёЏ Р‘РѕРєРѕРІР°СЏ РїР°РЅРµР»СЊ РґРѕСЃС‚СѓРїРЅР° С‚РѕР»СЊРєРѕ РІ Chrome/Edge', false);
+    return;
+  }
+  chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+  if (!tabs[0]?.id) return;
+  chrome.sidePanel.open({ tabId: tabs[0].id })
+  .then(() => window.close())
+  .catch(e => console.warn('[ImgPrompt] sidePanel.open failed:', e));
+  });
 };
 
-// ── Validation ───────────────────────────────────────────────────
+// в”Ђв”Ђ Validation в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 function validateFields() {
  const key = document.getElementById('apiKey')?.value.trim();
  const base = document.getElementById('baseUrl')?.value.trim();
  const model = document.getElementById('modelInput')?.value.trim();
  const prof = PROFILES[activeProfileId];
  // Local providers (Ollama, LM Studio, Jan) don't require an API key
- if (!key && prof?.requiresKey !== false) { showResult('⚠️ Введите API Key', false); return false; }
- if (!base) { showResult('⚠️ Введите Base URL', false); return false; }
- if (!model) { showResult('⚠️ Выберите модель', false); return false; }
+ if (!key && prof?.requiresKey !== false) { showResult('вљ пёЏ Р’РІРµРґРёС‚Рµ API Key', false); return false; }
+ if (!base) { showResult('вљ пёЏ Р’РІРµРґРёС‚Рµ Base URL', false); return false; }
+ if (!model) { showResult('вљ пёЏ Р’С‹Р±РµСЂРёС‚Рµ РјРѕРґРµР»СЊ', false); return false; }
  return true;
 }
 
-// ── Model chips ──────────────────────────────────────────────────
+// в”Ђв”Ђ Model chips в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 function populateChips(models) {
  const row = document.getElementById('modelChips');
  if (!row || !models.length) return;
@@ -216,7 +220,7 @@ function populateChips(models) {
  inHighCensorship = true;
  const sep = document.createElement('div');
  sep.style.cssText = 'width:100%; font-size:9px; color:#475569; text-transform:uppercase; letter-spacing:.06em; padding:4px 2px 2px; flex-basis:100%;';
- sep.textContent = '— высокая цензура —';
+ sep.textContent = 'вЂ” РІС‹СЃРѕРєР°СЏ С†РµРЅР·СѓСЂР° вЂ”';
  row.appendChild(sep);
  }
 
@@ -260,10 +264,10 @@ function selectChip(el) {
  document.getElementById('modelInput').value = modelId;
 
  if (el.dataset.paid === 'true') {
- showResult(`⚠️ ${el.querySelector('.chip-label')?.textContent || modelId} — платная модель, нужен баланс у провайдера.`, false);
+ showResult(`вљ пёЏ ${el.querySelector('.chip-label')?.textContent || modelId} вЂ” РїР»Р°С‚РЅР°СЏ РјРѕРґРµР»СЊ, РЅСѓР¶РµРЅ Р±Р°Р»Р°РЅСЃ Сѓ РїСЂРѕРІР°Р№РґРµСЂР°.`, false);
  } else {
  const el2 = document.getElementById('testResult');
- if (el2 && el2.textContent.startsWith('⚠')) el2.style.display = 'none';
+ if (el2 && el2.textContent.startsWith('вљ ')) el2.style.display = 'none';
  }
 
  saveSettingsNow(); // auto-save on chip click
@@ -275,22 +279,22 @@ function syncChips(modelId) {
  });
 }
 
-// ── Reveal key ───────────────────────────────────────────────────
+// в”Ђв”Ђ Reveal key в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 window.toggleReveal = function() {
  const inp = document.getElementById('apiKey');
  const btn = document.getElementById('revealBtn');
  if (!inp) return;
- if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
- else { inp.type = 'password'; btn.textContent = '👁'; }
+ if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'рџ™€'; }
+ else { inp.type = 'password'; btn.textContent = 'рџ‘Ѓ'; }
 };
 
-// ── Test API ─────────────────────────────────────────────────────
+// в”Ђв”Ђ Test API в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 window.testApi = async function() {
  if (!validateFields()) return;
  await saveSettingsNow();
 
  const btn = document.getElementById('testBtn');
- btn.innerHTML = ' Запрос к API...';
+ btn.innerHTML = ' Р—Р°РїСЂРѕСЃ Рє API...';
  btn.classList.add('loading');
  btn.disabled = true;
 
@@ -299,8 +303,8 @@ window.testApi = async function() {
  btn.classList.remove('loading');
 
  if (chrome.runtime.lastError) {
- showResult('❌ Ошибка расширения: ' + chrome.runtime.lastError.message, false);
- btn.innerHTML = '🧪 Проверить соединение';
+ showResult('вќЊ РћС€РёР±РєР° СЂР°СЃС€РёСЂРµРЅРёСЏ: ' + chrome.runtime.lastError.message, false);
+ btn.innerHTML = 'рџ§Є РџСЂРѕРІРµСЂРёС‚СЊ СЃРѕРµРґРёРЅРµРЅРёРµ';
  return;
  }
 
@@ -308,28 +312,28 @@ window.testApi = async function() {
  const total = response.total || 0;
  const vision = response.visionModels || [];
  showResult(
- `✅ Подключено! Всего моделей: ${total}. С поддержкой картинок: ${vision.length}.` +
- (vision.length ? `\\nЧипсы обновлены ↓` : ''),
+ `вњ… РџРѕРґРєР»СЋС‡РµРЅРѕ! Р’СЃРµРіРѕ РјРѕРґРµР»РµР№: ${total}. РЎ РїРѕРґРґРµСЂР¶РєРѕР№ РєР°СЂС‚РёРЅРѕРє: ${vision.length}.` +
+ (vision.length ? `\\nР§РёРїСЃС‹ РѕР±РЅРѕРІР»РµРЅС‹ в†“` : ''),
  true
  );
- btn.innerHTML = '✅ Подключено!';
+ btn.innerHTML = 'вњ… РџРѕРґРєР»СЋС‡РµРЅРѕ!';
  btn.classList.add('success');
  setTimeout(() => {
- btn.innerHTML = '🧪 Проверить соединение';
+ btn.innerHTML = 'рџ§Є РџСЂРѕРІРµСЂРёС‚СЊ СЃРѕРµРґРёРЅРµРЅРёРµ';
  btn.classList.remove('success');
  }, 4000);
 
  document.getElementById('statusDot')?.classList.add('connected');
 
- // ★ Живой список vision-моделей вместо пресетов
+ // в… Р–РёРІРѕР№ СЃРїРёСЃРѕРє vision-РјРѕРґРµР»РµР№ РІРјРµСЃС‚Рѕ РїСЂРµСЃРµС‚РѕРІ
  if (vision.length) {
  populateChips(vision);
  chrome.storage.local.set({ cachedVisionModels: vision });
  }
 
  } else {
- showResult('❌ ' + (response?.error || 'Нет соединения. Проверьте ключ и URL.'), false);
- btn.innerHTML = '🧪 Проверить соединение';
+ showResult('вќЊ ' + (response?.error || 'РќРµС‚ СЃРѕРµРґРёРЅРµРЅРёСЏ. РџСЂРѕРІРµСЂСЊС‚Рµ РєР»СЋС‡ Рё URL.'), false);
+ btn.innerHTML = 'рџ§Є РџСЂРѕРІРµСЂРёС‚СЊ СЃРѕРµРґРёРЅРµРЅРёРµ';
  }
  });
 };
@@ -342,7 +346,7 @@ function showResult(msg, isOk) {
  el.textContent = msg;
 }
 
-// ── Header ───────────────────────────────────────────────────────
+// в”Ђв”Ђ Header в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 function updateHeader() {
  const base = document.getElementById('baseUrl')?.value.trim() || '';
  const prov = providerName(base);
@@ -352,7 +356,7 @@ function updateHeader() {
  if (name) name.textContent = prov;
 }
 
-// ── Mode toggle ──────────────────────────────────────────────────
+// в”Ђв”Ђ Mode toggle в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 window.selectMode = function(mode) {
  document.getElementById('pillBuiltin')?.classList.toggle('active', mode === 'builtin');
  document.getElementById('pillCustom')?.classList.toggle('active', mode === 'custom');
@@ -367,8 +371,8 @@ window.selectMode = function(mode) {
  }
 };
 
-// ── History ──────────────────────────────────────────────────────
-// Пересобрано через DOM-API (без innerHTML-шаблона): безопасно и без зависимости от классов
+// в”Ђв”Ђ History в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+// РџРµСЂРµСЃРѕР±СЂР°РЅРѕ С‡РµСЂРµР· DOM-API (Р±РµР· innerHTML-С€Р°Р±Р»РѕРЅР°): Р±РµР·РѕРїР°СЃРЅРѕ Рё Р±РµР· Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ РєР»Р°СЃСЃРѕРІ
 window.showHistory = function() {
  const section = document.getElementById('historySection');
  const main = document.getElementById('mainSection');
@@ -386,7 +390,7 @@ window.showHistory = function() {
 
  const list = document.getElementById('historyList');
  if (!list) return;
- list.innerHTML = ' ⏳ Загрузка... ';
+ list.innerHTML = ' вЏі Р—Р°РіСЂСѓР·РєР°... ';
 
  chrome.storage.local.get({ history: [] }, ({ history }) => {
  if (!list) return;
@@ -395,7 +399,7 @@ window.showHistory = function() {
  list.innerHTML = '';
  const empty = document.createElement('div');
  empty.style.cssText = 'text-align:center;padding:30px 10px;color:#64748b;font-size:12px;line-height:1.7;';
- empty.innerHTML = '<div style="font-size:28px;margin-bottom:8px;">💭</div>История пуста.<br>Наведи на картинку и нажми «Промпт» — она появится здесь.<br><span style="font-size:10px;color:#475569;">Данные: chrome.storage.local</span>';
+ empty.innerHTML = '<div style="font-size:28px;margin-bottom:8px;">рџ’­</div>РСЃС‚РѕСЂРёСЏ РїСѓСЃС‚Р°.<br>РќР°РІРµРґРё РЅР° РєР°СЂС‚РёРЅРєСѓ Рё РЅР°Р¶РјРё В«РџСЂРѕРјРїС‚В» вЂ” РѕРЅР° РїРѕСЏРІРёС‚СЃСЏ Р·РґРµСЃСЊ.<br><span style="font-size:10px;color:#475569;">Р”Р°РЅРЅС‹Рµ: chrome.storage.local</span>';
  list.appendChild(empty);
  return;
  }
@@ -411,10 +415,10 @@ window.showHistory = function() {
  const im = document.createElement('img');
  im.src = item.thumb;
  im.style.cssText = 'width:100%;height:100%;object-fit:cover;';
- im.onerror = () => { thumb.textContent = '🖼'; };
+ im.onerror = () => { thumb.textContent = 'рџ–ј'; };
  thumb.appendChild(im);
  } else {
- thumb.textContent = '🖼';
+ thumb.textContent = 'рџ–ј';
  }
 
  const col = document.createElement('div');
@@ -426,7 +430,7 @@ window.showHistory = function() {
 
  const meta = document.createElement('div');
  meta.style.cssText = 'font-size:9.5px;color:#64748b;margin-top:4px;';
- meta.textContent = `${item.model || ''} · ${formatDate(item.ts)}`;
+ meta.textContent = `${item.model || ''} В· ${formatDate(item.ts)}`;
 
  col.append(p, meta);
  row.append(thumb, col);
@@ -441,10 +445,10 @@ window.backToSettings = function() {
 };
 
 window.clearHistory = function() {
- if (!confirm('Очистить всю историю?')) return;
+ if (!confirm('РћС‡РёСЃС‚РёС‚СЊ РІСЃСЋ РёСЃС‚РѕСЂРёСЋ?')) return;
  chrome.storage.local.set({ history: [] }, () => {
  document.getElementById('historyList').innerHTML =
- ' История очищена. ';
+ ' РСЃС‚РѕСЂРёСЏ РѕС‡РёС‰РµРЅР°. ';
  });
 };
 
@@ -457,7 +461,7 @@ function formatDate(ts) {
  return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
 }
 
-// ── Utils ────────────────────────────────────────────────────────
+// в”Ђв”Ђ Utils в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 function flashBtn(id, newText, oldText, cls) {
  const btn = document.getElementById(id);
  if (!btn) return;
@@ -466,9 +470,9 @@ function flashBtn(id, newText, oldText, cls) {
  setTimeout(() => { btn.textContent = oldText; btn.classList.remove(cls); }, 2000);
 }
 
-// ── Init ─────────────────────────────────────────────────────────
+// в”Ђв”Ђ Init в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
 document.addEventListener('DOMContentLoaded', async () => {
- initChips(); // мгновенный фолбэк, ниже заменится чипами активного профиля
+ initChips(); // РјРіРЅРѕРІРµРЅРЅС‹Р№ С„РѕР»Р±СЌРє, РЅРёР¶Рµ Р·Р°РјРµРЅРёС‚СЃСЏ С‡РёРїР°РјРё Р°РєС‚РёРІРЅРѕРіРѕ РїСЂРѕС„РёР»СЏ
 
  document.getElementById('profileBtnOpenrouter')?.addEventListener('click', () => switchProfile('openrouter'));
  document.getElementById('profileBtnGroq')?.addEventListener('click', () => switchProfile('groq'));
@@ -499,7 +503,7 @@ document.addEventListener('DOMContentLoaded', async () => {
  b.classList.toggle('active', b.dataset.profile === activeProfileId);
  });
 
- // ★ Чипы активного профиля (раньше всегда оставались пресеты OpenRouter)
+ // в… Р§РёРїС‹ Р°РєС‚РёРІРЅРѕРіРѕ РїСЂРѕС„РёР»СЏ (СЂР°РЅСЊС€Рµ РІСЃРµРіРґР° РѕСЃС‚Р°РІР°Р»РёСЃСЊ РїСЂРµСЃРµС‚С‹ OpenRouter)
  const activeProf = PROFILES[settings.profileId] || PROFILES.openrouter;
  populateChips(activeProf.models);
  syncChips(settings.model);
@@ -509,7 +513,7 @@ document.addEventListener('DOMContentLoaded', async () => {
  document.getElementById('statusDot')?.classList.add('connected');
  }
 
- // Кэш живых моделей — только для OpenRouter
+ // РљСЌС€ Р¶РёРІС‹С… РјРѕРґРµР»РµР№ вЂ” С‚РѕР»СЊРєРѕ РґР»СЏ OpenRouter
  if (activeProfileId === 'openrouter') {
  chrome.storage.local.get({ cachedVisionModels: [] }, ({ cachedVisionModels }) => {
  if (cachedVisionModels.length) {
