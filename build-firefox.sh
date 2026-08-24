@@ -22,7 +22,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC_DIR="$SCRIPT_DIR"
-VERSION="$(node -pe 'JSON.parse(require("fs").readFileSync("manifest.json","utf8")).version' "$SRC_DIR/manifest.json" 2>/dev/null || python3 -c "import json,sys; print(json.load(open('$SRC_DIR/manifest.json'))['version'])")"
+VERSION="$(node -pe 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).version' "$SRC_DIR/manifest.json" 2>/dev/null || python3 -c "import json; print(json.load(open('$SRC_DIR/manifest.json'))['version'])")"
 OUT_DIR="${1:-$SCRIPT_DIR}"
 ZIP_NAME="imgprompt-firefox-v${VERSION}.zip"
 BUILD_DIR="$(mktemp -d)"
@@ -139,12 +139,16 @@ EOF
 # ── 4. Patch background.js ────────────────────────────────────
 # Replace: import { getSystemPrompt, getUserMessage } from './prompts.js';
 # With:    const { getSystemPrompt, getUserMessage } = globalThis.__IP_PROMPTS__;
-sed -i \
+# sed -i: '' suffix required on BSD/macOS, ignored on GNU/Linux
+SED_INPLACE=(sed -i '')
+"${SED_INPLACE[@]}" 2>/dev/null || SED_INPLACE=(sed -i)
+
+"${SED_INPLACE[@]}" \
   "s|import { getSystemPrompt, getUserMessage } from './prompts.js';|// Firefox MV2: prompts-fx.js loaded before this script\nconst { getSystemPrompt, getUserMessage } = globalThis.__IP_PROMPTS__;|" \
   "$BUILD_DIR/background.js"
 
 # Replace chrome.tabs.captureVisibleTab with browser.tabs.captureVisibleTab
-sed -i \
+"${SED_INPLACE[@]}" \
   's/chrome\.tabs\.captureVisibleTab/browser.tabs.captureVisibleTab/g' \
   "$BUILD_DIR/background.js"
 
