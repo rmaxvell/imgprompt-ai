@@ -30,8 +30,8 @@ let currentLang = 'ru';
 // Работает и с полным chat/completions URL, и с базовым URL без суффикса
 function modelsUrlFrom(chatUrl) {
  return String(chatUrl || '')
- .replace(/\\/chat\\/completions\\/?$/i, '')
- .replace(/\\/+$/, '') + '/models';
+ .replace(/\/chat\/completions\/?$/i, '')
+ .replace(/\/+$/, '') + '/models';
 }
 
 function showToast(message, type = 'success') {
