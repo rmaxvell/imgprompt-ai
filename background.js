@@ -19,7 +19,7 @@ const DEFAULTS = {
   language: 'ru', // фолбэк-язык анализа, единый с options
   imageMaxSize: 1024,
   imageQuality: 0.85,
-  requestTimeout: 0 // 0 = provider-aware default: 120s local, 60s cloud
+  requestTimeout: 0 // 0 = provider-aware default: 300s local, 60s cloud
 };
 
 // Одноразовая миграция настроек из storage.sync → storage.local.
