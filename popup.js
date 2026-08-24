@@ -116,11 +116,12 @@ function saveSettingsNow() {
  const base = document.getElementById('baseUrl')?.value.trim() || '';
  const key = document.getElementById('apiKey')?.value.trim() || '';
  const model = document.getElementById('modelInput')?.value.trim() || '';
+ const prof = PROFILES[activeProfileId] || PROFILES.openrouter;
  const save = {
- apiUrl: toChatUrl(base),
- apiKey: key,
- model,
- activeProfile: activeProfileId
+   apiUrl: toChatUrl(base || prof.baseUrl), // никогда не пишем пустой URL
+   apiKey: key,
+   model: model || prof.defaultModel,       // никогда не пишем пустую модель
+   activeProfile: activeProfileId
  };
  save['key_' + activeProfileId] = key; // per-profile key
  return new Promise(resolve => chrome.storage.local.set(save, resolve));
@@ -236,7 +237,7 @@ function populateChips(models) {
  chip.dataset.model = m.id;
  chip.dataset.paid = m.free ? 'false' : 'true';
 
- const label = m.name || m.id.replace(/^[^/]+\\//, '');
+ const label = m.name || m.id.replace(/^[^/]+\//, '');
  const tagHtml = m.tag === 'LOCAL'
  ? '<span class="chip-tag">LOCAL</span>'
  : m.tag
@@ -313,7 +314,7 @@ window.testApi = async function() {
  const vision = response.visionModels || [];
  showResult(
  `✅ Подключено! Всего моделей: ${total}. С поддержкой картинок: ${vision.length}.` +
- (vision.length ? `\\nЧипсы обновлены ↓` : ''),
+ (vision.length ? '\nЧипсы обновлены ↓' : ''),
  true
  );
  btn.innerHTML = '✅ Подключено!';
@@ -472,7 +473,11 @@ function flashBtn(id, newText, oldText, cls) {
 
 // ── Init ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
- initChips(); // мгновенный фолбэк, ниже заменится чипами активного профиля
+  // Версия из манифеста — чтобы не было захардкоженного v1.1
+  const verEl = document.querySelector('.brand-ver');
+  if (verEl) verEl.textContent = 'v' + chrome.runtime.getManifest().version;
+
+  initChips(); // мгновенный фолбэк, ниже заменится чипами активного профиля
 
  document.getElementById('profileBtnOpenrouter')?.addEventListener('click', () => switchProfile('openrouter'));
  document.getElementById('profileBtnGroq')?.addEventListener('click', () => switchProfile('groq'));
@@ -492,22 +497,24 @@ document.addEventListener('DOMContentLoaded', async () => {
  chrome.tabs.create({ url: 'https://yoomoney.ru/to/410013803949909' });
  });
 
- const settings = await loadSettings();
- const base = getBaseUrl(settings.apiUrl);
+  const settings = await loadSettings();
+  const activeProf = PROFILES[settings.profileId] || PROFILES.openrouter;
+  // Страховка от «отравленного» хранилища: если apiUrl был сохранён пустым,
+  // getBaseUrl вернёт '' — берём дефолт профиля
+  const base = getBaseUrl(settings.apiUrl) || activeProf.baseUrl;
 
- document.getElementById('baseUrl').value = base;
- document.getElementById('apiKey').value = settings.apiKey;
- document.getElementById('modelInput').value = settings.model;
+  document.getElementById('baseUrl').value = base;
+  document.getElementById('apiKey').value = settings.apiKey;
+  document.getElementById('modelInput').value = settings.model || activeProf.defaultModel;
 
- document.querySelectorAll('.profile-btn').forEach(b => {
- b.classList.toggle('active', b.dataset.profile === activeProfileId);
- });
+  document.querySelectorAll('.profile-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.profile === activeProfileId);
+  });
 
- // ★ Чипы активного профиля (раньше всегда оставались пресеты OpenRouter)
- const activeProf = PROFILES[settings.profileId] || PROFILES.openrouter;
- populateChips(activeProf.models);
- syncChips(settings.model);
- updateHeader();
+  // ★ Чипы активного профиля (раньше всегда оставались пресеты OpenRouter)
+  populateChips(activeProf.models);
+  syncChips(settings.model || activeProf.defaultModel);
+  updateHeader();
 
  if (settings.apiKey || activeProf.requiresKey === false) {
  document.getElementById('statusDot')?.classList.add('connected');
