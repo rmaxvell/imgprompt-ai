@@ -139,9 +139,8 @@ EOF
 # ── 4. Patch background.js ────────────────────────────────────
 # Replace: import { getSystemPrompt, getUserMessage } from './prompts.js';
 # With:    const { getSystemPrompt, getUserMessage } = globalThis.__IP_PROMPTS__;
-# sed -i: '' suffix required on BSD/macOS, ignored on GNU/Linux
-SED_INPLACE=(sed -i '')
-"${SED_INPLACE[@]}" 2>/dev/null || SED_INPLACE=(sed -i)
+# Reliable GNU/BSD sed detection: GNU knows --version, BSD does not
+if sed --version &>/dev/null; then SED_INPLACE=(sed -i); else SED_INPLACE=(sed -i ''); fi
 
 "${SED_INPLACE[@]}" \
   "s|import { getSystemPrompt, getUserMessage } from './prompts.js';|// Firefox MV2: prompts-fx.js loaded before this script\nconst { getSystemPrompt, getUserMessage } = globalThis.__IP_PROMPTS__;|" \
