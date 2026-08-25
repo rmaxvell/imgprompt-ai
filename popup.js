@@ -290,53 +290,80 @@ window.toggleReveal = function() {
 };
 
 // ── Test API ─────────────────────────────────────────────────────
+// Helper: promisified sendMessage with one automatic retry for Firefox timing
+function sendMessageWithRetry(msg, maxAttempts = 2, delayMs = 700) {
+ return new Promise((resolve, reject) => {
+  function attempt(n) {
+   chrome.runtime.sendMessage(msg, response => {
+    if (chrome.runtime.lastError) {
+     if (n < maxAttempts) {
+      setTimeout(() => attempt(n + 1), delayMs);
+     } else {
+      reject(new Error(chrome.runtime.lastError.message));
+     }
+    } else {
+     resolve(response);
+    }
+   });
+  }
+  attempt(1);
+ });
+}
+
 window.testApi = async function() {
  if (!validateFields()) return;
  await saveSettingsNow();
 
  const btn = document.getElementById('testBtn');
- btn.innerHTML = ' Запрос к API...';
+ btn.innerHTML = '🔄 Запрос к API...';
  btn.classList.add('loading');
  btn.disabled = true;
 
- chrome.runtime.sendMessage({ type: 'TEST_CONNECTION' }, response => {
+ let response;
+ try {
+  response = await sendMessageWithRetry({ type: 'TEST_CONNECTION' });
+ } catch (err) {
+  btn.disabled = false;
+  btn.classList.remove('loading');
+  btn.innerHTML = '🧪 Проверить соединение';
+  showResult(
+   '❌ Фоновая страница недоступна: ' + err.message +
+   '\n→ Закройте и снова откройте попап, или перезагрузите расширение в about:debugging',
+   false
+  );
+  return;
+ }
+
  btn.disabled = false;
  btn.classList.remove('loading');
 
- if (chrome.runtime.lastError) {
- showResult('❌ Ошибка расширения: ' + chrome.runtime.lastError.message, false);
- btn.innerHTML = '🧪 Проверить соединение';
- return;
- }
-
  if (response?.success) {
- const total = response.total || 0;
- const vision = response.visionModels || [];
- showResult(
- `✅ Подключено! Всего моделей: ${total}. С поддержкой картинок: ${vision.length}.` +
- (vision.length ? '\nЧипсы обновлены ↓' : ''),
- true
- );
- btn.innerHTML = '✅ Подключено!';
- btn.classList.add('success');
- setTimeout(() => {
- btn.innerHTML = '🧪 Проверить соединение';
- btn.classList.remove('success');
- }, 4000);
+  const total = response.total || 0;
+  const vision = response.visionModels || [];
+  showResult(
+   `✅ Подключено! Всего моделей: ${total}. С поддержкой картинок: ${vision.length}.` +
+   (vision.length ? '\nЧипсы обновлены ↓' : ''),
+   true
+  );
+  btn.innerHTML = '✅ Подключено!';
+  btn.classList.add('success');
+  setTimeout(() => {
+   btn.innerHTML = '🧪 Проверить соединение';
+   btn.classList.remove('success');
+  }, 4000);
 
- document.getElementById('statusDot')?.classList.add('connected');
+  document.getElementById('statusDot')?.classList.add('connected');
 
- // ★ Живой список vision-моделей вместо пресетов
- if (vision.length) {
- populateChips(vision);
- chrome.storage.local.set({ cachedVisionModels: vision });
- }
+  // ★ Живой список vision-моделей вместо пресетов
+  if (vision.length) {
+   populateChips(vision);
+   chrome.storage.local.set({ cachedVisionModels: vision });
+  }
 
  } else {
- showResult('❌ ' + (response?.error || 'Нет соединения. Проверьте ключ и URL.'), false);
- btn.innerHTML = '🧪 Проверить соединение';
+  showResult('❌ ' + (response?.error || 'Нет соединения. Проверьте ключ и URL.'), false);
+  btn.innerHTML = '🧪 Проверить соединение';
  }
- });
 };
 
 function showResult(msg, isOk) {
