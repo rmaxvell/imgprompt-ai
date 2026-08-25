@@ -23,7 +23,8 @@
   "content_security_policy": "default-src 'self'; connect-src *; img-src * data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self';",
 
   "background": {
-    "scripts": ["prompts-fx.js", "background.js"]
+    "scripts": ["prompts-fx.js", "background.js"],
+    "persistent": true
   },
 
   "browser_action": {
@@ -37,7 +38,7 @@
 
   "sidebar_action": {
     "default_panel": "sidepanel.html",
-    "default_title": "ImgPrompt — История",
+    "default_title": "ImgPrompt AI",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png"
