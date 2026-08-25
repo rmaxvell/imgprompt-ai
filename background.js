@@ -1,4 +1,16 @@
-﻿// ═══════════════════════════════════════════════════════════════
+﻿// ★ Self-diagnostic: catch ALL uncaught errors before any other code
+self.onerror = window.onerror = function(msg, src, line, col, err) {
+  console.error('[ImgPrompt BG FATAL]', msg, 'at', src, line + ':' + col, err);
+  return false;
+};
+self.addEventListener && self.addEventListener('error', function(e) {
+  console.error('[ImgPrompt BG FATAL event]', e.message, e.filename, e.lineno);
+});
+self.addEventListener && self.addEventListener('unhandledrejection', function(e) {
+  console.error('[ImgPrompt BG unhandledrejection]', e.reason);
+});
+console.log('[ImgPrompt BG] === STARTUP Firefox 154 ===', new Date().toISOString());
+// ═══════════════════════════════════════════════════════════════
 // ImgPrompt AI — Background Service Worker v2.0
 //
 // Стратегия получения картинки (от надёжной к запасной):
