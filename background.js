@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════
 // ImgPrompt AI — Background Service Worker v2.0
 //
 // Стратегия получения картинки (от надёжной к запасной):
@@ -7,7 +7,17 @@
 // ═══════════════════════════════════════════════════════════════
 
 // Firefox MV2: prompts-fx.js loaded before this script, exports via globalThis.__IP_PROMPTS__
-const { getSystemPrompt, getUserMessage } = globalThis.__IP_PROMPTS__;
+// Safe init: if prompts-fx.js failed for any reason, use fallback stubs
+let getSystemPrompt, getUserMessage;
+try {
+  if (!globalThis.__IP_PROMPTS__) throw new Error('__IP_PROMPTS__ not set by prompts-fx.js');
+  ({ getSystemPrompt, getUserMessage } = globalThis.__IP_PROMPTS__);
+  console.log('[ImgPrompt BG] prompts loaded OK');
+} catch (e) {
+  console.error('[ImgPrompt BG] CRITICAL: prompt init failed:', e);
+  getSystemPrompt = () => 'Describe this image in detail. Generate a prompt for Stable Diffusion / FLUX / Midjourney.';
+  getUserMessage  = () => 'Analyze this image and generate a detailed prompt.';
+}
 
 // ⚠️ Единая точка дефолтов. Перед релизом сверьте ID модели,
 // например: curl https://openrouter.ai/api/v1/models
@@ -474,6 +484,15 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 // ── Message handler ───────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+
+  // PING -- liveness check
+  if (msg.type === 'PING') { sendResponse({ pong: true, ts: Date.now() }); return; }
+
+  // GET_SETTINGS -- used by content.js
+  if (msg.type === 'GET_SETTINGS') {
+    getSettings().then(s => sendResponse(s)).catch(() => sendResponse({}));
+    return true;
+  }
 
   // ── ANALYZE_IMAGE ──────────────────────────────────────────────
   // Content script sends: { type, imageUrl, imageRect }
