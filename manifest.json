@@ -23,7 +23,7 @@
   "content_security_policy": "default-src 'self'; connect-src *; img-src * data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self';",
 
   "background": {
-    "scripts": ["prompts-fx.js", "background.js"],
+    "scripts": ["background.js"],
     "persistent": true
   },
 
