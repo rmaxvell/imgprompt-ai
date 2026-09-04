@@ -5,19 +5,23 @@ let knownCount = -1;
 
 // ── Extract prompt from full text ─────────────────────────────────
 function extractPrompt(text) {
- if (!text) return '';
- const m = /\\*\\*\\s*✨[^\\n*]*\\*\\*:?/.exec(text);
- if (!m) return text.slice(0, 400);
- const after = text.slice(m.index + m[0].length);
- const e = /\\n\\s*\\*\\*/.exec(after);
- return (e ? after.slice(0, e.index) : after).trim();
+  if (!text) return '';
+  // Ищем секцию SD-промпта по заголовку: **✨ Промпт**, **Prompt**, **PROMPT** и т.п.
+  const m = text.match(
+    /\*\*[\u2728\uD83C\uDFA8]?\s*(?:Промпт|Prompt|PROMPT)\*\*\s*\n([\s\S]*?)(?=\n\s*\*\*[\u274C\uD83D\uDD34\uD83C\uDFAC]|\n\s*\*\*(?:Negative|Негативн|FLUX|Midjourney|\bSD\b)|\n---|\n#{1,3}\s|$)/i
+  );
+  if (m && m[1] && m[1].trim().length > 5) return m[1].trim();
+  return text.slice(0, 400);
 }
 
 function renderMd(text) {
- return (text || '')
- .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
- .replace(/\\*\\*(.+?)\\*\\*/g, ' $1 ')
- .replace(/\\n/g, ' ');
+  return (text || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^#{3}\s(.+)$/gm, '<h4 style="margin:.4em 0 .2em;font-size:.82em;opacity:.85;font-weight:600">$1</h4>')
+    .replace(/^#{2}\s(.+)$/gm, '<h3 style="margin:.5em 0 .25em;font-size:.92em;font-weight:700">$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n---+\n?/g, '<hr style="border:none;border-top:1px solid rgba(255,255,255,.12);margin:.4em 0">')
+    .replace(/\n/g, '<br>');
 }
 
 function fmtDate(ts) {
@@ -28,11 +32,18 @@ function fmtDate(ts) {
 }
 
 function copyText(text, btn, label) {
- navigator.clipboard.writeText(text).then(() => {
- btn.textContent = '✅ Скопировано!';
- btn.classList.add('done');
- setTimeout(() => { btn.textContent = label; btn.classList.remove('done'); }, 2000);
- });
+  // Очищаем markdown перед копированием в буфер
+  const clean = (text || '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/#{1,3}\s/g, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  navigator.clipboard.writeText(clean).then(() => {
+    btn.textContent = '✅ Скопировано!';
+    btn.classList.add('done');
+    setTimeout(() => { btn.textContent = label; btn.classList.remove('done'); }, 2000);
+  });
 }
 
 // ── Delete a single history item by timestamp ──────────────────────
