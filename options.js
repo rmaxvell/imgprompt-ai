@@ -6,6 +6,7 @@ const DEFAULT_SETTINGS = {
  imageQuality: 0.85,
  requestTimeout: 0,
  language: 'ru',
+ showOverlayBtns: true,
  systemPrompt: `You are an expert AI image analyst and prompt engineer. \nAnalyze the given image and provide:\n\n**📝 Description:** What is shown in this image (subject, scene, context)\n\n**🎨 Visual Style:** Art style, photography type, rendering technique\n\n**🌈 Colors & Mood:** Color palette, lighting, atmosphere, emotional tone\n\n**🖼 Composition:** Layout, perspective, depth, framing\n\n**✨ AI Prompt (ready to use):** A detailed, ready-to-use prompt for image generation that would recreate this image\n\n**🏷 Tags:** Comma-separated keywords for search/categorization\n\nBe precise and thorough. The prompt should work with Midjourney, DALL-E, Stable Diffusion.`
 };
 
@@ -177,6 +178,7 @@ async function saveSettings() {
  model: document.getElementById('model').value.trim(),
  language: currentLang,
  systemPrompt: document.getElementById('systemPrompt').value.trim(),
+ showOverlayBtns: document.getElementById('showOverlayBtns').checked,
  imageMaxSize: Math.max(64, Number(document.getElementById('imageMaxSize').value) || DEFAULT_SETTINGS.imageMaxSize),
  imageQuality: Math.min(1, Math.max(0.1, Number(document.getElementById('imageQuality').value) || DEFAULT_SETTINGS.imageQuality)),
  requestTimeout: Math.max(0, Number(document.getElementById('requestTimeout').value) || DEFAULT_SETTINGS.requestTimeout)
@@ -191,7 +193,7 @@ async function saveSettings() {
 }
 
 function resetToDefaults() {
- if (confirm('Сбросить все настройки к значениям по умолчанию?')) {
+ if (confirm('Сбросить все настройки до значений по умолчанию?')) {
  document.getElementById('apiUrl').value = DEFAULT_SETTINGS.apiUrl;
  document.getElementById('apiKey').value = '';
  document.getElementById('model').value = DEFAULT_SETTINGS.model;
@@ -199,6 +201,7 @@ function resetToDefaults() {
  document.getElementById('imageMaxSize').value = DEFAULT_SETTINGS.imageMaxSize;
  document.getElementById('imageQuality').value = DEFAULT_SETTINGS.imageQuality;
  document.getElementById('requestTimeout').value = DEFAULT_SETTINGS.requestTimeout;
+ document.getElementById('showOverlayBtns').checked = DEFAULT_SETTINGS.showOverlayBtns;
  setLang('ru');
  showToast('Настройки сброшены');
  }
@@ -213,6 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
  document.getElementById('imageMaxSize').value = settings.imageMaxSize ?? DEFAULT_SETTINGS.imageMaxSize;
  document.getElementById('imageQuality').value = settings.imageQuality ?? DEFAULT_SETTINGS.imageQuality;
  document.getElementById('requestTimeout').value = settings.requestTimeout ?? DEFAULT_SETTINGS.requestTimeout;
+ document.getElementById('showOverlayBtns').checked = settings.showOverlayBtns ?? true;
  setLang(settings.language || 'ru');
  });
 
