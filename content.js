@@ -28,7 +28,10 @@
   let overlayBtnsEnabled = true;
   chrome.storage.local.get({ showOverlayBtns: true }, (s) => { overlayBtnsEnabled = s.showOverlayBtns !== false; });
   chrome.storage.onChanged.addListener((changes) => {
-    if ('showOverlayBtns' in changes) overlayBtnsEnabled = changes.showOverlayBtns.newValue !== false;
+    if ('showOverlayBtns' in changes) {
+      overlayBtnsEnabled = changes.showOverlayBtns.newValue !== false;
+      if (!overlayBtnsEnabled) removeMenu();  // убираем существующее меню сразу
+    }
   });
 
   // ─── CSS ───────────────────────────────────────────────────────
