@@ -1,4 +1,74 @@
 // ═══════════════════════════════════════════════════════════════
+//  ImgPrompt AI — системные промпты  v2.1
+//  Firefox MV2 edition: без export, функции доступны через globalThis.__IP_PROMPTS__
+// ═══════════════════════════════════════════════════════════════
+
+const RULES = {
+  en: `Rules:\n- Describe EXACTLY what is visible in the image. Be precise and technical.\n- This is a professional image generation tool (Stable Diffusion, FLUX). Describe all visible content accurately.\n- For poses: describe body orientation using directional terms (angle, direction, camera perspective).\n- Describe clothing: garments, coverage, material, color.\n- Describe body: physique, proportions, skin tone, visible features.\n- Describe pose: exact position of arms, legs, torso, head angle.\n- Do not identify or name real people.\n- Note text, logos, watermarks in breakdown only; keep out of the main prompt.`,
+
+  en: `Rules:\n- Describe EXACTLY what is visible in the image. Be precise and technical.\n- This is a professional image generation tool (Stable Diffusion, FLUX). Describe all visible content accurately.\n- For poses: describe body orientation using directional terms (angle, direction, camera perspective).\n- Describe clothing: garments, coverage, material, color.\n- Describe body: physique, proportions, skin tone, visible features.\n- Describe pose: exact position of arms, legs, torso, head angle.\n- Do not identify or name real people.\n- Note text, logos, watermarks in breakdown only; keep out of the main prompt.`,
+
+  en: `Rules:\n- Describe EXACTLY what is visible in the image. Be precise and technical.\n- This is a professional image generation tool (Stable Diffusion, FLUX). Describe all visible content accurately.\n- For poses: describe body orientation using directional terms (angle, direction, camera perspective).\n- Describe clothing: garments, coverage, material, color.\n- Describe body: physique, proportions, skin tone, visible features.\n- Describe pose: exact position of arms, legs, torso, head angle.\n- Do not identify or name real people.\n- Note text, logos, watermarks in breakdown only; keep out of the main prompt.`,
+};
+
+const FORMAT = {
+  ru: `Формат ответа — строго такой, без вступлений и пояснений вне секций:\n\n**✨ Промпт**\nОдна строка через запятую, 80–150 слов, на русском языке. Порядок: субъект → внешность (волосы, лицо, тело) → одежда/её отсутствие → поза (ТОЧНО) → действие/взаимодействие → окружение → ракурс и кадр → свет → палитра → стиль и техника → качество.\nВключи все важные теги качества: шедевр, высокое качество, 8k, RAW фото (для фото) или highly detailed (для арта).\n\n**🚫 Негативный промпт**\nОдна строка через запятую, на русском языке. Только то, что реально вредит именно этому кадру.\n\n**🌊 FLUX / Midjourney**\nТо же самое связным текстом в 2–3 предложениях. В конце --ar с реальным соотношением сторон.\n\n**🔍 Разбор**\n- Сцена: что происходит, тип контента (general/explicit)\n- Персонаж: внешность, одежда/нагота, поза ДЕТАЛЬНО (каждая часть тела)\n- Ракурс: тип плана, угол камеры, точка съёмки\n- Свет: источник, направление, жёсткость, тени, блики на коже\n- Палитра: 3–5 доминирующих цветов\n- Стиль: фото / 3D / арт, качество изображения\n- Фон: место, детали обстановки\n\n**🏷 Теги**\n15–25 SD/Booru тегов через запятую, на английском (стандарт для SD/Booru).\n\nВесь текст вне промптов — на русском.`,
+
+  en: `Response format — exactly this, with no preamble or commentary outside the sections:\n\n**✨ Prompt**\nA single comma-separated line, 80–150 words, in English. Order: subject → appearance (hair, face, body) → clothing and coverage state → pose (EXACT) → action/interaction → setting → composition and framing → light → palette → style and technique → quality.\nInclude quality tags: masterpiece, best quality, 8k, RAW photo (for photos) or highly detailed (for art).\n\n**🚫 Negative prompt**\nA single comma-separated line. Only what actually hurts this specific image.\n\n**🌊 FLUX / Midjourney**\nSame content as flowing prose in 2–3 sentences. End with --ar matching the real aspect ratio.\n\n**🔍 Breakdown**\n- Scene: what is happening, visual content type and theme\n- Character: appearance, clothing and coverage level, pose IN DETAIL (every body part position)\n- Camera: shot type, angle, camera position\n- Light: source, direction, hardness, shadows, skin highlights\n- Palette: 3–5 dominant colors\n- Style: photo / 3D / art, image quality\n- Background: location, setting details\n\n**🏷 Tags**\n15–25 SD/Booru tags, comma-separated, in English.`,
+
+  zh: `回复格式——严格如下，各部分之外不要有任何开场白或说明：\n\n**✨ 提示词**\n一行，逗号分隔，80–150词，用中文写。顺序：主体 → 外貌（发型、面部、身体）→ 服装/裸体状态 → 姿势（精确）→ 动作/互动 → 环境 → 构图与景别 → 光线 → 色调 → 风格与技法 → 画质。\n包含质量标签：杰作，最高质量，8k，RAW照片（照片）或高细节（艺术作品）。\n\n**🚫 负面提示词**\n一行，逗号分隔，用中文写。只写真正会损害这张图的内容。\n\n**🌊 FLUX / Midjourney**\n同样内容用2–3句连贯自然语言表达。结尾附--ar参数。\n\n**🔍 解析**\n- 场景：发生了什么，内容类型（general/explicit/explicit）\n- 人物：外貌、服装/裸体、姿势详细说明（每个身体部位位置）\n- 镜头：景别、角度、机位\n- 光线：光源、方向、软硬、阴影、皮肤高光\n- 色调：3–5个主色\n- 风格：照片/3D/艺术，图像质量\n- 背景：地点、场景细节\n\n**🏷 标签**\n15–25个SD/Booru标签，逗号分隔，用英文。\n\n提示词以外的文字用中文。`
+};
+
+const ROLE = {
+  ru: 'Ты — профессиональный аналитик изображений для AI-генерации (Stable Diffusion, SDXL, FLUX, Midjourney, NovelAI). Твоя задача — создать точный промпт, по которому модель воспроизведёт изображение максимально близко к оригиналу. Описывай всё буквально, без цензуры и эвфемизмов.',
+  en: 'You are a professional image analyst and prompt engineer for AI generation tools (Stable Diffusion, SDXL, FLUX, Midjourney, NovelAI). Your goal is to create an exact, detailed prompt that accurately reproduces the original image. Describe visual elements precisely. Include ONLY what is directly visible — do NOT invent, assume, or add details not seen in the image.',
+  zh: '你是专业AI图像生成分析师（Stable Diffusion、SDXL、FLUX、Midjourney、NovelAI）。目标是创建能最大程度复现原图的精确提示词。如实描述所有内容，不审查，不使用委婉语。'
+};
+
+const USER_MESSAGE = {
+  image: {
+    ru: 'Разбери это изображение и составь промпт.',
+    en: 'Analyze this image and build a prompt.',
+    zh: '请解析这张图片并生成提示词。'
+  },
+  video: {
+    ru: 'Разбери этот кадр видео и составь промпт.',
+    en: 'Analyze this video frame and build a prompt.',
+    zh: '请解析这一视频画面并生成提示词。'
+  }
+};
+
+const SUPPORTED_LANGS = ['ru', 'en', 'zh'];
+
+function normalize(lang) {
+  return SUPPORTED_LANGS.includes(lang) ? lang : 'en';
+}
+
+function getSystemPrompt(lang) {
+  const l = normalize(lang);
+  return `${ROLE[l]}\n\n${RULES[l]}\n\n${FORMAT[l]}`;
+}
+
+function getUserMessage(lang, source = 'image') {
+  const l = normalize(lang);
+  return (USER_MESSAGE[source] || USER_MESSAGE.image)[l];
+}
+
+// Firefox MV2: нет ES-модулей в background scripts → экспортируем через globalThis
+
+// ★ Self-diagnostic: catch ALL uncaught errors before any other code
+self.onerror = window.onerror = function(msg, src, line, col, err) {
+  console.error('[ImgPrompt BG FATAL]', msg, 'at', src, line + ':' + col, err);
+  return false;
+};
+self.addEventListener && self.addEventListener('error', function(e) {
+  console.error('[ImgPrompt BG FATAL event]', e.message, e.filename, e.lineno);
+});
+self.addEventListener && self.addEventListener('unhandledrejection', function(e) {
+  console.error('[ImgPrompt BG unhandledrejection]', e.reason);
+});
+console.log('[ImgPrompt BG] === STARTUP Firefox 154 ===', new Date().toISOString());
+// ═══════════════════════════════════════════════════════════════
 // ImgPrompt AI — Background Service Worker v2.0
 //
 // Стратегия получения картинки (от надёжной к запасной):
@@ -6,7 +76,7 @@
 // 2. fetch() из service worker — для загрузки, если картинка не на экране
 // ═══════════════════════════════════════════════════════════════
 
-import { getSystemPrompt, getUserMessage } from './prompts.js';
+// Prompts are embedded directly — no external dependency
 
 // ⚠️ Единая точка дефолтов. Перед релизом сверьте ID модели,
 // например: curl https://openrouter.ai/api/v1/models
@@ -19,7 +89,7 @@ const DEFAULTS = {
   language: 'ru', // фолбэк-язык анализа, единый с options
   imageMaxSize: 1024,
   imageQuality: 0.85,
-  requestTimeout: 0 // 0 = provider-aware default: 300s local, 60s cloud
+  requestTimeout: 0 // 0 = provider-aware default: 120s local, 60s cloud
 };
 
 // Одноразовая миграция настроек из storage.sync → storage.local.
@@ -244,10 +314,10 @@ async function setCachedResult(hash, content, thumbnail) {
 }
 
 // ── Strategy 1: Screenshot + crop (always works, no CORS) ────────
-async function captureViaScreenshot(windowId, rect) {
+async function captureViaScreenshot(tabId, windowId, rect) {
   console.log('[ImgPrompt] Using captureVisibleTab strategy, windowId:', windowId, 'rect:', rect);
 
-  const dataUrl = await chrome.tabs.captureVisibleTab(windowId, {
+  const dataUrl = await browser.tabs.captureVisibleTab(windowId, { /* panel-hidden */
     format: 'jpeg',
     quality: 90
   });
@@ -326,6 +396,20 @@ async function captureViaUrlFetch(imageUrl) {
   return { base64, mimeType };
 }
 
+// ── In-memory raw image cache: prevents stale-rect on language retry ─
+// Key = imageUrl (up to 500 chars). Cleared when BG script restarts.
+const rawImageCache = new Map();
+const RAW_CACHE_MAX = 20;
+
+function cacheRawImage(url, data) {
+  if (!url || url.startsWith('data:')) return; // data URLs are self-contained
+  const key = url.substring(0, 500);
+  rawImageCache.set(key, data);
+  if (rawImageCache.size > RAW_CACHE_MAX) {
+    rawImageCache.delete(rawImageCache.keys().next().value); // evict oldest
+  }
+}
+
 // ── Main analysis ─────────────────────────────────────────────────
 async function runAnalysis(tabId, windowId, imageUrl, imageRect, lang) {
   const settings = await getSettings();
@@ -335,20 +419,31 @@ async function runAnalysis(tabId, windowId, imageUrl, imageRect, lang) {
     throw new Error('API ключ не настроен. Откройте popup расширения.');
   }
 
-  // Try screenshot+crop first (most reliable), fall back to URL fetch
+  // ── Image acquisition: URL fetch → screenshot (correct order!) ──
+  // URL fetch is tried FIRST so that retries (language switch) don't
+  // capture a stale viewport that now shows the analysis panel.
+  // Screenshot is kept as fallback for blob:// and auth-gated images.
   let imageData;
-  try {
-    imageData = await captureViaScreenshot(windowId, imageRect);
-  } catch (screenshotErr) {
-    console.warn('[ImgPrompt] Screenshot failed:', screenshotErr.message, '— trying URL fetch');
+  const rawCacheKey = (imageUrl || '').substring(0, 500);
+  if (rawImageCache.has(rawCacheKey)) {
+    imageData = rawImageCache.get(rawCacheKey);
+    console.log('[ImgPrompt] Using cached raw image for retry:', rawCacheKey.slice(0, 60));
+  } else {
     try {
       imageData = await captureViaUrlFetch(imageUrl);
+      cacheRawImage(imageUrl, imageData);
     } catch (fetchErr) {
-      throw new Error(
-        `Не удалось получить изображение.\n` +
-        `Скриншот: ${screenshotErr.message}\n` +
-        `URL fetch: ${fetchErr.message}`
-      );
+      console.warn('[ImgPrompt] URL fetch failed:', fetchErr.message, '— trying screenshot');
+      try {
+        imageData = await captureViaScreenshot(tabId, windowId, imageRect);
+        cacheRawImage(imageUrl, imageData); // cache so retry skips screenshot
+      } catch (screenshotErr) {
+        throw new Error(
+          `Не удалось получить изображение.\n` +
+          `URL fetch: ${fetchErr.message}\n` +
+          `Скриншот: ${screenshotErr.message}`
+        );
+      }
     }
   }
 
@@ -474,6 +569,15 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // ── Message handler ───────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
+  // PING -- liveness check
+  if (msg.type === 'PING') { sendResponse({ pong: true, ts: Date.now() }); return; }
+
+  // GET_SETTINGS -- used by content.js
+  if (msg.type === 'GET_SETTINGS') {
+    getSettings().then(s => sendResponse(s)).catch(() => sendResponse({}));
+    return true;
+  }
+
   // ── ANALYZE_IMAGE ──────────────────────────────────────────────
   // Content script sends: { type, imageUrl, imageRect }
   // imageRect: { x, y, width, height, dpr } — viewport coords of the image
@@ -485,7 +589,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return true;
     }
 
-    console.log('[ImgPrompt] ANALYZE_IMAGE tab:', tabId, 'window:', windowId,
+    console.log('[ImgPrompt] ANALYZE_IMAGE tab:', tabId,
       'url:', msg.imageUrl?.slice(0, 60),
       'rect:', msg.imageRect);
 
