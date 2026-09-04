@@ -8,7 +8,7 @@ function extractPrompt(text) {
   if (!text) return '';
   // Ищем секцию SD-промпта по заголовку: **✨ Промпт**, **Prompt**, **PROMPT** и т.п.
   const m = text.match(
-    /\*\*[\u2728\uD83C\uDFA8]?\s*(?:Промпт|Prompt|PROMPT)\*\*\s*\n([\s\S]*?)(?=\n\s*\*\*[\u274C\uD83D\uDD34\uD83C\uDFAC]|\n\s*\*\*(?:Negative|Негативн|FLUX|Midjourney|\bSD\b)|\n---|\n#{1,3}\s|$)/i
+    /\*\*[\u2728\uD83C\uDFA8]?\s*(?:Промпт|AI Prompt|Prompt|PROMPT)\*\*\s*\n([\s\S]*?)(?=\n\s*\*\*[\u274C\uD83D\uDD34\uD83C\uDFAC]|\n\s*\*\*(?:Negative|Негативн|FLUX|Midjourney|\bSD\b)|\n---|\n#{1,3}\s|$)/i
   );
   if (m && m[1] && m[1].trim().length > 5) return m[1].trim();
   return text.slice(0, 400);
