@@ -238,4 +238,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
  document.getElementById('resetBtn').addEventListener('click', resetToDefaults);
  document.getElementById('saveBtn').addEventListener('click', saveSettings);
+
+ // Чекбокс оверлея сохраняется мгновенно — без нажатия «Сохранить»
+ document.getElementById('showOverlayBtns').addEventListener('change', function() {
+   chrome.storage.local.set({ showOverlayBtns: this.checked });
+ });
 });
