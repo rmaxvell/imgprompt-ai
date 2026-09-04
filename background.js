@@ -57,7 +57,7 @@ function getUserMessage(lang, source = 'image') {
 // Firefox MV2: нет ES-модулей в background scripts → экспортируем через globalThis
 
 // ★ Self-diagnostic: catch ALL uncaught errors before any other code
-self.onerror = window.onerror = function(msg, src, line, col, err) {
+self.onerror = function(msg, src, line, col, err) {
   console.error('[ImgPrompt BG FATAL]', msg, 'at', src, line + ':' + col, err);
   return false;
 };
@@ -317,7 +317,7 @@ async function setCachedResult(hash, content, thumbnail) {
 async function captureViaScreenshot(tabId, windowId, rect) {
   console.log('[ImgPrompt] Using captureVisibleTab strategy, windowId:', windowId, 'rect:', rect);
 
-  const dataUrl = await browser.tabs.captureVisibleTab(windowId, { /* panel-hidden */
+  const dataUrl = await chrome.tabs.captureVisibleTab(windowId, {
     format: 'jpeg',
     quality: 90
   });
