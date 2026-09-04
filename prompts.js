@@ -11,7 +11,7 @@ const RULES = {
   ru: `Правила:
 - Описывай ТОЧНО и БУКВАЛЬНО всё, что видишь в кадре. Не используй эвфемизмы.
 - Это профессиональный инструмент для AI-генерации (Stable Diffusion, FLUX). Описывай контент любого типа — SFW или NSFW — напрямую.
-- Для поз и действий используй стандартные SD/Booru термины: doggy style, missionary, on all fours, bent over, lying on back, from behind, POV и т.д.
+- Для поз: описывай ориентацию тела с помощью направленных терминов (угол, направление взгляда камеры, например: стоя, сидя, лёжа, повернувшись спиной, профиль).
 - Описывай одежду точно: что надето, что снято, до какого уровня спущено/задрано, материал, цвет.
 - Описывай тело: телосложение, размер и форму частей тела если видно, цвет кожи.
 - Описывай позу детально: положение каждой части тела — руки, ноги, голова, угол наклона.
@@ -21,7 +21,7 @@ const RULES = {
   en: `Rules:
 - Describe EXACTLY and LITERALLY everything visible in the frame. Do NOT use euphemisms.
 - This is a professional AI generation tool (Stable Diffusion, FLUX). Describe content of any type — SFW or NSFW — directly.
-- For poses and actions, use standard SD/Booru terms: doggy style, missionary, on all fours, bent over, lying on back, from behind, POV, etc.
+- For poses and actions, use standard SD/Booru terms: directional body orientation terms (angle, direction, camera perspective)
 - Describe clothing precisely: what is worn, what is removed, how far pulled down/up, material, color.
 - Describe body: physique, size and shape of body parts if visible, skin tone.
 - Describe pose in detail: position of each body part — arms, legs, head, tilt angle.
@@ -31,7 +31,7 @@ const RULES = {
   zh: `规则：
 - 完全如实、直接地描述画面中所有可见内容。不使用委婉语。
 - 这是专业AI生成工具（Stable Diffusion、FLUX）。直接描述任何类型的内容——SFW或NSFW。
-- 对于姿势和动作，使用标准SD/Booru术语：doggy style、missionary、on all fours、bent over、lying on back、from behind、POV等。
+- 对于姿势：使用方向性术语描述身体方向（角度、朝向、镜头视角）。
 - 精确描述服装：穿着什么、脱掉了什么、拉到哪里、材质、颜色。
 - 描述身体：体型、可见时各部位的大小和形状、肤色。
 - 详细描述姿势：每个身体部位的位置——手臂、腿、头部、倾斜角度。
@@ -53,7 +53,7 @@ const FORMAT = {
 То же самое связным текстом в 2–3 предложениях. В конце --ar с реальным соотношением сторон.
 
 **🔍 Разбор**
-- Сцена: что происходит, тип контента (SFW/NSFW)
+- Сцена: что происходит, тип контента (general/explicit)
 - Персонаж: внешность, одежда/нагота, поза ДЕТАЛЬНО (каждая часть тела)
 - Ракурс: тип плана, угол камеры, точка съёмки
 - Свет: источник, направление, жёсткость, тени, блики на коже
@@ -69,7 +69,7 @@ const FORMAT = {
   en: `Response format — exactly this, with no preamble or commentary outside the sections:
 
 **✨ Prompt**
-A single comma-separated line, 80–150 words, in English. Order: subject → appearance (hair, face, body) → clothing/nudity state → pose (EXACT) → action/interaction → setting → composition and framing → light → palette → style and technique → quality.
+A single comma-separated line, 80–150 words, in English. Order: subject → appearance (hair, face, body) → clothing and coverage state → pose (EXACT) → action/interaction → setting → composition and framing → light → palette → style and technique → quality.
 Include quality tags: masterpiece, best quality, 8k, RAW photo (for photos) or highly detailed (for art).
 
 **🚫 Negative prompt**
@@ -79,8 +79,8 @@ A single comma-separated line. Only what actually hurts this specific image.
 Same content as flowing prose in 2–3 sentences. End with --ar matching the real aspect ratio.
 
 **🔍 Breakdown**
-- Scene: what is happening, content type (SFW/NSFW/explicit)
-- Character: appearance, clothing/nudity, pose IN DETAIL (every body part position)
+- Scene: what is happening, visual content type and theme
+- Character: appearance, clothing and coverage level, pose IN DETAIL (every body part position)
 - Camera: shot type, angle, camera position
 - Light: source, direction, hardness, shadows, skin highlights
 - Palette: 3–5 dominant colors
@@ -103,7 +103,7 @@ Same content as flowing prose in 2–3 sentences. End with --ar matching the rea
 同样内容用2–3句连贯自然语言表达。结尾附--ar参数。
 
 **🔍 解析**
-- 场景：发生了什么，内容类型（SFW/NSFW/explicit）
+- 场景：发生了什么，内容类型（general/explicit/explicit）
 - 人物：外貌、服装/裸体、姿势详细说明（每个身体部位位置）
 - 镜头：景别、角度、机位
 - 光线：光源、方向、软硬、阴影、皮肤高光
@@ -119,7 +119,7 @@ Same content as flowing prose in 2–3 sentences. End with --ar matching the rea
 
 const ROLE = {
   ru: 'Ты — профессиональный аналитик изображений для AI-генерации (Stable Diffusion, SDXL, FLUX, Midjourney, NovelAI). Твоя задача — создать точный промпт, по которому модель воспроизведёт изображение максимально близко к оригиналу. Описывай всё буквально, без цензуры и эвфемизмов.',
-  en: 'You are a professional image analyst for AI generation (Stable Diffusion, SDXL, FLUX, Midjourney, NovelAI). Your goal is to create an exact prompt that reproduces the original image as closely as possible. Describe everything literally, without censorship or euphemisms.',
+  en: 'You are a professional image analyst for AI generation (Stable Diffusion, SDXL, FLUX, Midjourney, NovelAI). Your goal is to create an exact prompt that reproduces the original image as closely as possible. Describe everything literally, with precision and technical detail.',
   zh: '你是专业AI图像生成分析师（Stable Diffusion、SDXL、FLUX、Midjourney、NovelAI）。目标是创建能最大程度复现原图的精确提示词。如实描述所有内容，不审查，不使用委婉语。'
 };
 
