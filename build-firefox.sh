@@ -22,7 +22,20 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC_DIR="$SCRIPT_DIR"
-VERSION="$(node -pe 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).version' "$SRC_DIR/manifest.json" 2>/dev/null || python3 -c "import json; print(json.load(open('$SRC_DIR/manifest.json'))['version'])")"
+
+# Windows/git-bash: node and native python don't understand MSYS paths (/d/...).
+# cygpath -m rewrites them to D:/... form; on Unix it's a no-op passthrough.
+native_path() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
+# python3 on Unix, python on Windows
+if command -v python3 >/dev/null 2>&1; then PY=python3
+elif command -v python >/dev/null 2>&1; then PY=python
+else PY=""; fi
+
+# manifest.json may carry a UTF-8 BOM → strip it before JSON.parse
+VERSION="$(node -pe 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8").replace(/^\uFEFF/,"")).version' "$(native_path "$SRC_DIR/manifest.json")" 2>/dev/null)"
+if [ -z "$VERSION" ] && [ -n "$PY" ]; then
+  VERSION="$("$PY" -c "import json,io,sys; print(json.load(io.open(sys.argv[1],encoding='utf-8-sig'))['version'])" "$(native_path "$SRC_DIR/manifest.json")")"
+fi
 OUT_DIR="${1:-$SCRIPT_DIR}"
 ZIP_NAME="imgprompt-firefox-v${VERSION}.zip"
 BUILD_DIR="$(mktemp -d)"
@@ -169,8 +182,8 @@ rm -f "$ZIP_PATH"
 
 if command -v zip &>/dev/null; then
   (cd "$BUILD_DIR" && zip -r "$ZIP_PATH" . -x "*.DS_Store" "*.gitkeep")
-elif command -v python3 &>/dev/null; then
-  python3 -c "
+elif [ -n "$PY" ]; then
+  "$PY" -c "
 import zipfile, os, sys
 src = sys.argv[1]; out = sys.argv[2]
 with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
@@ -179,9 +192,9 @@ with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
         for f in files:
             p = os.path.join(root, f)
             z.write(p, os.path.relpath(p, src))
-" "$BUILD_DIR" "$ZIP_PATH"
+" "$(native_path "$BUILD_DIR")" "$(native_path "$ZIP_PATH")"
 else
-  echo "❌ Need 'zip' or 'python3' to pack. Install one and re-run."
+  echo "❌ Need 'zip' or python (python3/python) to pack. Install one and re-run."
   rm -rf "$BUILD_DIR"
   exit 1
 fi
