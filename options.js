@@ -6,7 +6,6 @@ const DEFAULT_SETTINGS = {
  imageQuality: 0.85,
  requestTimeout: 0,
  language: 'ru',
- showOverlayBtns: true,
  systemPrompt: `You are an expert AI image analyst and prompt engineer. \nAnalyze the given image and provide:\n\n**📝 Description:** What is shown in this image (subject, scene, context)\n\n**🎨 Visual Style:** Art style, photography type, rendering technique\n\n**🌈 Colors & Mood:** Color palette, lighting, atmosphere, emotional tone\n\n**🖼 Composition:** Layout, perspective, depth, framing\n\n**✨ AI Prompt (ready to use):** A detailed, ready-to-use prompt for image generation that would recreate this image\n\n**🏷 Tags:** Comma-separated keywords for search/categorization\n\nBe precise and thorough. The prompt should work with Midjourney, DALL-E, Stable Diffusion.`
 };
 
@@ -35,6 +34,15 @@ function modelsUrlFrom(chatUrl) {
  .replace(/\/+$/, '') + '/models';
 }
 
+// Локальный адрес? (для подсказки про CORS/OLLAMA_ORIGINS)
+function isLocalUrl(url = '') {
+ return /localhost|127\.0\.0\.1|\[::1\]|192\.168\.|(^|\.)10\.|172\.(1[6-9]|2\d|3[01])\.|\.local($|[:/])/i.test(String(url));
+}
+function updateLocalHint() {
+ const el = document.getElementById('localHint');
+ if (el) el.style.display = isLocalUrl(document.getElementById('apiUrl')?.value) ? 'block' : 'none';
+}
+
 function showToast(message, type = 'success') {
  const toast = document.getElementById('toast');
  toast.className = `toast toast-${type} show`;
@@ -49,6 +57,7 @@ function setPreset(name) {
  document.getElementById('apiUrl').value = '';
  document.getElementById('apiUrl').focus();
  }
+ updateLocalHint();
 }
 
 function setLang(lang) {
@@ -80,7 +89,7 @@ async function testConnection() {
  const apiUrl = document.getElementById('apiUrl').value.trim();
  const apiKey = document.getElementById('apiKey').value.trim();
 
- const isLocal = /localhost|127\\.0\\.0\\.1/i.test(apiUrl);
+ const isLocal = /localhost|127\.0\.0\.1/i.test(apiUrl);
  if (!apiUrl || (!apiKey && !isLocal)) {
  result.className = 'test-result error';
  result.textContent = '❌ Введите URL и API ключ (или используйте локальный провайдер)';
@@ -118,7 +127,7 @@ async function loadModels() {
  const apiUrl = document.getElementById('apiUrl').value.trim();
  const apiKey = document.getElementById('apiKey').value.trim();
 
- const isLocalLM = /localhost|127\\.0\\.0\\.1/i.test(apiUrl);
+ const isLocalLM = /localhost|127\.0\.0\.1/i.test(apiUrl);
  if (!apiUrl || (!apiKey && !isLocalLM)) {
  showToast('Введите URL и API ключ', 'error');
  return;
@@ -178,7 +187,6 @@ async function saveSettings() {
  model: document.getElementById('model').value.trim(),
  language: currentLang,
  systemPrompt: document.getElementById('systemPrompt').value.trim(),
- showOverlayBtns: document.getElementById('showOverlayBtns').checked,
  imageMaxSize: Math.max(64, Number(document.getElementById('imageMaxSize').value) || DEFAULT_SETTINGS.imageMaxSize),
  imageQuality: Math.min(1, Math.max(0.1, Number(document.getElementById('imageQuality').value) || DEFAULT_SETTINGS.imageQuality)),
  requestTimeout: Math.max(0, Number(document.getElementById('requestTimeout').value) || DEFAULT_SETTINGS.requestTimeout)
@@ -193,7 +201,7 @@ async function saveSettings() {
 }
 
 function resetToDefaults() {
- if (confirm('Сбросить все настройки до значений по умолчанию?')) {
+ if (confirm('Сбросить все настройки к значениям по умолчанию?')) {
  document.getElementById('apiUrl').value = DEFAULT_SETTINGS.apiUrl;
  document.getElementById('apiKey').value = '';
  document.getElementById('model').value = DEFAULT_SETTINGS.model;
@@ -201,7 +209,6 @@ function resetToDefaults() {
  document.getElementById('imageMaxSize').value = DEFAULT_SETTINGS.imageMaxSize;
  document.getElementById('imageQuality').value = DEFAULT_SETTINGS.imageQuality;
  document.getElementById('requestTimeout').value = DEFAULT_SETTINGS.requestTimeout;
- document.getElementById('showOverlayBtns').checked = DEFAULT_SETTINGS.showOverlayBtns;
  setLang('ru');
  showToast('Настройки сброшены');
  }
@@ -216,9 +223,11 @@ document.addEventListener('DOMContentLoaded', () => {
  document.getElementById('imageMaxSize').value = settings.imageMaxSize ?? DEFAULT_SETTINGS.imageMaxSize;
  document.getElementById('imageQuality').value = settings.imageQuality ?? DEFAULT_SETTINGS.imageQuality;
  document.getElementById('requestTimeout').value = settings.requestTimeout ?? DEFAULT_SETTINGS.requestTimeout;
- document.getElementById('showOverlayBtns').checked = settings.showOverlayBtns ?? true;
  setLang(settings.language || 'ru');
+ updateLocalHint();
  });
+
+ document.getElementById('apiUrl')?.addEventListener('input', updateLocalHint);
 
  document.querySelectorAll('[data-preset]').forEach(btn => {
  btn.addEventListener('click', () => setPreset(btn.dataset.preset));
@@ -238,9 +247,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
  document.getElementById('resetBtn').addEventListener('click', resetToDefaults);
  document.getElementById('saveBtn').addEventListener('click', saveSettings);
-
- // Чекбокс оверлея сохраняется мгновенно — без нажатия «Сохранить»
- document.getElementById('showOverlayBtns').addEventListener('change', function() {
-   chrome.storage.local.set({ showOverlayBtns: this.checked });
- });
 });
