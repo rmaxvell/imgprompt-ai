@@ -24,16 +24,6 @@
   let currentResult = '';
   let currentVideoFrame = null; // последний захваченный кадр видео (dataURL)
 
-  // Настройка: показывать кнопки-оверлей на изображениях
-  let overlayBtnsEnabled = true;
-  chrome.storage.local.get({ showOverlayBtns: true }, (s) => { overlayBtnsEnabled = s.showOverlayBtns !== false; });
-  chrome.storage.onChanged.addListener((changes) => {
-    if ('showOverlayBtns' in changes) {
-      overlayBtnsEnabled = changes.showOverlayBtns.newValue !== false;
-      if (!overlayBtnsEnabled) removeMenu();  // убираем существующее меню сразу
-    }
-  });
-
   // ─── CSS ───────────────────────────────────────────────────────
   const CSS = `
     :host {
@@ -358,7 +348,6 @@
   }
 
   function showHoverMenu(el, type = 'img') {
-    if (!overlayBtnsEnabled) return;  // Bug 3: отключаемые кнопки-оверлей
     const eligible = type === 'video' ? isEligibleVideo(el) : isEligible(el);
     if (!eligible) return;
     ensureRoot();
