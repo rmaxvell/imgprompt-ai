@@ -130,7 +130,7 @@ Open the **Options** page (right-click extension icon → Options) to configure:
 - **Model** — select from auto-detected list or enter manually
 - **System Prompt** — customize the analysis instructions
 - **Image Compression** — max size (default: 1024px) and JPEG quality (default: 0.85)
-- **Request Timeout** — seconds to wait before aborting (0 = auto: 120s local, 60s cloud)
+- **Request Timeout** — seconds to wait before aborting (0 = auto: 600s local, 60s cloud)
 - **Language** — prompt output language (EN/RU/ZH)
 
 ---
