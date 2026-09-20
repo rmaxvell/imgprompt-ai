@@ -89,7 +89,7 @@ async function testConnection() {
  const apiUrl = document.getElementById('apiUrl').value.trim();
  const apiKey = document.getElementById('apiKey').value.trim();
 
- const isLocal = /localhost|127\.0\.0\.1/i.test(apiUrl);
+ const isLocal = /localhost|127\.0\.0\.1|\[::1\]/i.test(apiUrl);
  if (!apiUrl || (!apiKey && !isLocal)) {
  result.className = 'test-result error';
  result.textContent = '❌ Введите URL и API ключ (или используйте локальный провайдер)';
@@ -127,7 +127,7 @@ async function loadModels() {
  const apiUrl = document.getElementById('apiUrl').value.trim();
  const apiKey = document.getElementById('apiKey').value.trim();
 
- const isLocalLM = /localhost|127\.0\.0\.1/i.test(apiUrl);
+ const isLocalLM = /localhost|127\.0\.0\.1|\[::1\]/i.test(apiUrl);
  if (!apiUrl || (!apiKey && !isLocalLM)) {
  showToast('Введите URL и API ключ', 'error');
  return;
