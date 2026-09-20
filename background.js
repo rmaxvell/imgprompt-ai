@@ -47,6 +47,11 @@ const LOCAL_TIMEOUT_MS = 600 * 1000; // VLM на слабом CPU с карти�
 const CLOUD_TIMEOUT_MS = 60 * 1000;
 let activeRequestController = null;
 
+// In-memory cache of raw images by URL, so retries (language switch)
+// skip re-fetching / re-screenshotting the same picture.
+const rawImageCache = new Map();
+const RAW_CACHE_MAX = 20;
+
 // Сериализация записи истории: исключает потерю записей
 // при параллельных анализах (read-modify-write без блокировки)
 let historyQueue = Promise.resolve();
@@ -326,6 +331,15 @@ async function captureViaUrlFetch(imageUrl) {
   return { base64, mimeType };
 }
 
+function cacheRawImage(url, data) {
+  if (!url || url.startsWith('data:')) return; // data URLs are self-contained
+  const key = url.substring(0, 500);
+  rawImageCache.set(key, data);
+  if (rawImageCache.size > RAW_CACHE_MAX) {
+    rawImageCache.delete(rawImageCache.keys().next().value); // evict oldest
+  }
+}
+
 // ── Main analysis ─────────────────────────────────────────────────
 async function runAnalysis(tabId, windowId, imageUrl, imageRect, lang) {
   const settings = await getSettings();
@@ -335,20 +349,31 @@ async function runAnalysis(tabId, windowId, imageUrl, imageRect, lang) {
     throw new Error('API ключ не настроен. Откройте popup расширения.');
   }
 
-  // Try screenshot+crop first (most reliable), fall back to URL fetch
+  // ── Image acquisition: URL fetch → screenshot (correct order!) ──
+  // URL fetch is tried FIRST so that retries (language switch) don't
+  // capture a stale viewport that now shows the analysis panel.
+  // Screenshot is kept as fallback for blob:// and auth-gated images.
   let imageData;
-  try {
-    imageData = await captureViaScreenshot(windowId, imageRect);
-  } catch (screenshotErr) {
-    console.warn('[ImgPrompt] Screenshot failed:', screenshotErr.message, '— trying URL fetch');
+  const rawCacheKey = (imageUrl || '').substring(0, 500);
+  if (rawImageCache.has(rawCacheKey)) {
+    imageData = rawImageCache.get(rawCacheKey);
+    console.log('[ImgPrompt] Using cached raw image for retry:', rawCacheKey.slice(0, 60));
+  } else {
     try {
       imageData = await captureViaUrlFetch(imageUrl);
+      cacheRawImage(imageUrl, imageData);
     } catch (fetchErr) {
-      throw new Error(
-        `Не удалось получить изображение.\n` +
-        `Скриншот: ${screenshotErr.message}\n` +
-        `URL fetch: ${fetchErr.message}`
-      );
+      console.warn('[ImgPrompt] URL fetch failed:', fetchErr.message, '— trying screenshot');
+      try {
+        imageData = await captureViaScreenshot(windowId, imageRect);
+        cacheRawImage(imageUrl, imageData); // cache so retry skips screenshot
+      } catch (screenshotErr) {
+        throw new Error(
+          `Не удалось получить изображение.\n` +
+          `URL fetch: ${fetchErr.message}\n` +
+          `Скриншот: ${screenshotErr.message}`
+        );
+      }
     }
   }
 
