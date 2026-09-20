@@ -94,6 +94,18 @@ function providerName(base = '') {
  return base.replace(/^https?:\/\//, '').split('/')[0].split('.')[0] || 'API';
 }
 
+// Локальный адрес? (для подсказки про CORS/OLLAMA_ORIGINS)
+function isLocalBase(base = '') {
+ return /localhost|127\.0\.0\.1|\[::1\]|192\.168\.|(^|\.)10\.|172\.(1[6-9]|2\d|3[01])\.|\.local($|[:/])/i.test(String(base));
+}
+function updateLocalHint() {
+ const el = document.getElementById('localHint');
+ if (!el) return;
+ const base = document.getElementById('baseUrl')?.value.trim() || '';
+ const prof = PROFILES[activeProfileId];
+ el.style.display = (prof?.requiresKey === false || isLocalBase(base)) ? 'block' : 'none';
+}
+
 // ── Load settings ────────────────────────────────────────────────
 // Хранилище — chrome.storage.LOCAL: ключи не должны уезжать в аккаунт Google
 function loadSettings() {
@@ -150,6 +162,7 @@ window.switchProfile = function(profileId) {
  populateChips(prof.models);
  syncChips(model);
  updateHeader();
+ updateLocalHint();
 
  const save = { activeProfile: profileId, apiUrl: toChatUrl(prof.baseUrl), model };
  save['key_' + profileId] = key;
@@ -290,80 +303,53 @@ window.toggleReveal = function() {
 };
 
 // ── Test API ─────────────────────────────────────────────────────
-// Helper: promisified sendMessage with one automatic retry for Firefox timing
-function sendMessageWithRetry(msg, maxAttempts = 2, delayMs = 700) {
- return new Promise((resolve, reject) => {
-  function attempt(n) {
-   chrome.runtime.sendMessage(msg, response => {
-    if (chrome.runtime.lastError) {
-     if (n < maxAttempts) {
-      setTimeout(() => attempt(n + 1), delayMs);
-     } else {
-      reject(new Error(chrome.runtime.lastError.message));
-     }
-    } else {
-     resolve(response);
-    }
-   });
-  }
-  attempt(1);
- });
-}
-
 window.testApi = async function() {
  if (!validateFields()) return;
  await saveSettingsNow();
 
  const btn = document.getElementById('testBtn');
- btn.innerHTML = '🔄 Запрос к API...';
+ btn.innerHTML = ' Запрос к API...';
  btn.classList.add('loading');
  btn.disabled = true;
 
- let response;
- try {
-  response = await sendMessageWithRetry({ type: 'TEST_CONNECTION' });
- } catch (err) {
-  btn.disabled = false;
-  btn.classList.remove('loading');
-  btn.innerHTML = '🧪 Проверить соединение';
-  showResult(
-   '❌ Фоновая страница недоступна: ' + err.message +
-   '\n→ Закройте и снова откройте попап, или перезагрузите расширение в about:debugging',
-   false
-  );
-  return;
- }
-
+ chrome.runtime.sendMessage({ type: 'TEST_CONNECTION' }, response => {
  btn.disabled = false;
  btn.classList.remove('loading');
 
+ if (chrome.runtime.lastError) {
+ showResult('❌ Ошибка расширения: ' + chrome.runtime.lastError.message, false);
+ btn.innerHTML = '🧪 Проверить соединение';
+ return;
+ }
+
  if (response?.success) {
-  const total = response.total || 0;
-  const vision = response.visionModels || [];
-  showResult(
-   `✅ Подключено! Всего моделей: ${total}. С поддержкой картинок: ${vision.length}.` +
-   (vision.length ? '\nЧипсы обновлены ↓' : ''),
-   true
-  );
-  btn.innerHTML = '✅ Подключено!';
-  btn.classList.add('success');
-  setTimeout(() => {
-   btn.innerHTML = '🧪 Проверить соединение';
-   btn.classList.remove('success');
-  }, 4000);
+ const total = response.total || 0;
+ const vision = response.visionModels || [];
+ showResult(
+ `✅ Подключено! Всего моделей: ${total}. С поддержкой картинок: ${vision.length}.` +
+ (vision.length ? '\nЧипсы обновлены ↓' : ''),
+ true
+ );
+ btn.innerHTML = '✅ Подключено!';
+ btn.classList.add('success');
+ setTimeout(() => {
+ btn.innerHTML = '🧪 Проверить соединение';
+ btn.classList.remove('success');
+ }, 4000);
 
-  document.getElementById('statusDot')?.classList.add('connected');
+ document.getElementById('statusDot')?.classList.add('connected');
 
-  // ★ Живой список vision-моделей вместо пресетов
-  if (vision.length) {
-   populateChips(vision);
-   chrome.storage.local.set({ cachedVisionModels: vision });
-  }
+ // ★ Живой список vision-моделей вместо пресетов
+ if (vision.length) {
+ populateChips(vision);
+ chrome.storage.local.set({ cachedVisionModels: vision });
+ }
 
  } else {
-  showResult('❌ ' + (response?.error || 'Нет соединения. Проверьте ключ и URL.'), false);
-  btn.innerHTML = '🧪 Проверить соединение';
+ showResult('❌ ' + (response?.error || 'Нет соединения. Проверьте ключ и URL.'), false);
+ btn.innerHTML = '🧪 Проверить соединение';
  }
+ });
 };
 
 function showResult(msg, isOk) {
@@ -542,6 +528,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   populateChips(activeProf.models);
   syncChips(settings.model || activeProf.defaultModel);
   updateHeader();
+  updateLocalHint();
 
  if (settings.apiKey || activeProf.requiresKey === false) {
  document.getElementById('statusDot')?.classList.add('connected');
@@ -559,6 +546,7 @@ document.addEventListener('DOMContentLoaded', async () => {
  let saveTimer;
  ['baseUrl', 'apiKey'].forEach(id => {
  document.getElementById(id)?.addEventListener('input', () => {
+ updateLocalHint();
  clearTimeout(saveTimer);
  saveTimer = setTimeout(() => {
  saveSettingsNow();
