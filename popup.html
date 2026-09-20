@@ -7,7 +7,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html, body { overflow-y: scroll; scrollbar-width: thin; scrollbar-color: rgba(124,106,247,.5) transparent; }
+    html { overflow-y: auto; }
 
     body {
       width: 360px;
@@ -228,6 +228,17 @@
     .key-status.ok  { color: #10b981; }
     .key-status.err { color: #ef4444; }
 
+    .local-hint {
+      margin: 0 0 12px; padding: 9px 11px; border-radius: 10px;
+      background: rgba(6,182,212,0.08);
+      border: 1px solid rgba(6,182,212,0.28);
+      color: #9fd8e6; font-size: 10.5px; line-height: 1.5;
+    }
+    .local-hint code {
+      background: rgba(0,0,0,0.35); padding: 1px 4px; border-radius: 4px;
+      font-family: 'Courier New', monospace; color: #67e8f9; word-break: break-all;
+    }
+
     /* Test button */
     .test-btn {
       width: 100%; height: 46px; border-radius: 14px; border: none;
@@ -369,6 +380,13 @@
           <div class="profile-btn local" data-profile="ollama" id="profileBtnOllama">🦙 Ollama</div>
           <div class="profile-btn local" data-profile="lmstudio" id="profileBtnLmstudio">🖥 LM Studio</div>
           <div class="profile-btn local" data-profile="jan" id="profileBtnJan">🤖 Jan</div>
+        </div>
+
+        <!-- Local provider CORS hint -->
+        <div class="local-hint" id="localHint" style="display:none;">
+          🔌 <b>Локальная модель.</b> Разрешите расширению доступ к серверу:
+          для Ollama задайте <code>OLLAMA_ORIGINS=chrome-extension://*</code>,
+          в LM Studio/Jan включите CORS. Иначе запрос упадёт с ошибкой CORS.
         </div>
 
         <!-- Vision model selector -->
